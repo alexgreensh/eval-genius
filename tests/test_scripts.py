@@ -147,6 +147,31 @@ class CLITest(unittest.TestCase):
                 self.assertEqual(result.returncode, 2)
                 self.assertNotIn("Traceback", result.stderr)
 
+    def test_gate_rejects_non_string_or_empty_fixture_hash(self):
+        items = [{"id": "bad", "verdict": "fail"}, {"id": "x", "verdict": "pass"}]
+        for value in (None, [], {}, True, 123, ""):
+            with self.subTest(value=value):
+                data = self.gate(items, fixture=value)
+                a, b = self.write("a.json", data), self.write("b.json", data)
+                result = self.cli("check_gate.py", "--baseline", a, "--treatment", b)
+                self.assertEqual(result.returncode, 2)
+                self.assertIn("fixture_hash must be a non-empty string", result.stderr)
+                self.assertNotIn("Traceback", result.stderr)
+
+    def test_gate_rejects_json_integer_over_parser_limit(self):
+        path = self.dir / "huge.json"
+        path.write_text("9" * 5000, encoding="utf-8")
+        result = self.cli("check_gate.py", "--baseline", path, "--treatment", path)
+        self.assertEqual(result.returncode, 2)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_gate_prints_surrogates_safely(self):
+        data = self.gate([{"id": "bad", "verdict": "fail"}, {"id": "\ud800", "verdict": "pass"}], fixture="fixture-\ud800")
+        a, b = self.write("a.json", data), self.write("b.json", data)
+        result = self.cli("check_gate.py", "--baseline", a, "--treatment", b)
+        self.assertEqual(result.returncode, 0)
+        self.assertNotIn("Traceback", result.stderr)
+
     def test_gate_rejects_invalid_utf8_cleanly(self):
         path = self.dir / "invalid.json"
         path.write_bytes(b"{\xff}")
@@ -225,6 +250,21 @@ class CLITest(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("between 1 and 100000", result.stderr)
 
+    def test_bootstrap_rejects_json_integer_over_parser_limit(self):
+        path = self.dir / "huge.json"
+        path.write_text("9" * 5000, encoding="utf-8")
+        result = self.cli("paired_bootstrap.py", "--a", path, "--b", path)
+        self.assertEqual(result.returncode, 1)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_bootstrap_rejects_huge_integer_score_cleanly(self):
+        data = {"items": [{"id": "x", "score": 10 ** 4000}, {"id": "y", "score": 1}]}
+        a, b = self.write("a.json", data), self.write("b.json", data)
+        result = self.cli("paired_bootstrap.py", "--a", a, "--b", b)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("finite numeric", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
     def test_bootstrap_rejects_invalid_utf8_cleanly(self):
         path = self.dir / "invalid.json"
         path.write_bytes(b"{\xff}")
@@ -273,6 +313,22 @@ class CLITest(unittest.TestCase):
         a.write_text(rows, encoding="utf-8-sig")
         b.write_text(rows, encoding="utf-8-sig")
         self.assertEqual(self.cli("judge_agreement.py", "--human", a, "--judge", b).returncode, 0)
+
+    def test_judge_rejects_json_integer_over_parser_limit(self):
+        path = self.dir / "huge.json"
+        path.write_text("9" * 5000, encoding="utf-8")
+        result = self.cli("judge_agreement.py", "--human", path, "--judge", path)
+        self.assertEqual(result.returncode, 2)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_judge_prints_surrogate_disagreement_ids_safely(self):
+        human = {"items": [{"id": str(i), "label": "pass" if i % 2 else "fail"} for i in range(49)] + [{"id": "\ud800", "label": "pass"}]}
+        judge = json.loads(json.dumps(human))
+        judge["items"][-1]["label"] = "fail"
+        a, b = self.write("human.json", human), self.write("judge.json", judge)
+        result = self.cli("judge_agreement.py", "--human", a, "--judge", b, "--floor", "-1")
+        self.assertEqual(result.returncode, 0)
+        self.assertNotIn("Traceback", result.stderr)
 
     def test_judge_rejects_duplicate_ids(self):
         dup = {"items": [{"id": "x", "label": "pass"}, {"id": "x", "label": "fail"}]}

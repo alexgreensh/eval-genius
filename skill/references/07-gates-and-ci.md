@@ -115,5 +115,7 @@ case "$code" in
 esac
 ```
 
-Store the per-item records and manifest as CI artifacts on every outcome. A red job
-without the records cannot distinguish a product regression from a broken gauge.
+In the project that integrates the gate, store the per-item records and manifest as CI
+artifacts on every outcome. A red job without the records cannot distinguish a product
+regression from a broken gauge. The skill repository's own workflow tests the utilities;
+it does not produce system-under-test run artifacts.

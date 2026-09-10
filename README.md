@@ -100,6 +100,8 @@ Then talk to it in plain language (*"do I need evals for my chatbot?"*, *"is thi
 python3 skill/scripts/check_gate.py --baseline base.json --treatment treat.json
 ```
 
+On Windows, use `py -3` instead of `python3` if that is how Python is installed.
+
 ## Curious about the reasoning?
 
 The full method behind the skill, in one plain-language document, lives in **[METHODOLOGY.md](METHODOLOGY.md)**. You do not need it to use the skill; it is there if you want to see the thinking.

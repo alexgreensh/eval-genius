@@ -2,6 +2,7 @@ name: Tests
 
 on:
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
@@ -21,6 +22,7 @@ jobs:
         with:
           python-version: "3.10"
       - name: Compile scripts
+        shell: bash
         run: python -m py_compile skill/scripts/*.py
       - name: Run tests
         run: python -m unittest discover -s tests -v
@@ -34,9 +36,14 @@ jobs:
           fail_code=$?
           python skill/scripts/check_gate.py --baseline tests/fixtures/pass-baseline.json --treatment tests/fixtures/cannot-measure-treatment.json
           cannot_code=$?
+          python skill/scripts/check_gate.py --baseline tests/fixtures/unicode-baseline.json --treatment tests/fixtures/unicode-treatment.json
+          unicode_code=$?
           set -e
           test "$pass_code" -eq 0
           test "$fail_code" -eq 1
           test "$cannot_code" -eq 2
+          test "$unicode_code" -eq 0
           test -n "$fail_output"
-          ! printf '%s' "$fail_output" | grep -q 'Traceback'
+          if printf '%s' "$fail_output" | grep -q 'Traceback'; then
+            exit 1
+          fi

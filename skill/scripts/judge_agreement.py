@@ -15,6 +15,9 @@ import math
 import sys
 from collections import Counter
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="backslashreplace")
+
 
 def cannot(message):
     print(f"CANNOT-MEASURE: {message}", file=sys.stderr)
@@ -41,9 +44,9 @@ def load(path, allowed_labels):
                     rows = data["items"]
                 else:
                     rows = data
-            except json.JSONDecodeError:
+            except (json.JSONDecodeError, ValueError):
                 rows = [json.loads(line) for line in text.splitlines() if line.strip()]
-    except (json.JSONDecodeError, KeyError, TypeError, csv.Error) as exc:
+    except (json.JSONDecodeError, ValueError, KeyError, TypeError, csv.Error) as exc:
         cannot(f"{path} is not JSON/JSONL/CSV with id,label ({exc})")
     if not isinstance(rows, list):
         cannot(f"{path} items must be an array.")

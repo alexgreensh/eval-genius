@@ -1,0 +1,1 @@
+{"manifest":{"fixture_hash":"fixture-עברית-日本語","liveness":"passed","negative_control_id":"בקרה"},"items":[{"id":"בקרה","verdict":"fail"},{"id":"café-日本語","verdict":"pass"}]}

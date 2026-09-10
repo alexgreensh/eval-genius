@@ -24,6 +24,9 @@ import argparse
 import json
 import sys
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="backslashreplace")
+
 PASS, FAIL, CANNOT = 0, 1, 2
 
 
@@ -42,14 +45,14 @@ def load(path, role):
         die(f"cannot read {role} file {path} as UTF-8 ({exc}).")
     try:
         data = json.loads(text)
-    except json.JSONDecodeError:
+    except (json.JSONDecodeError, ValueError):
         try:
             lines = [json.loads(line) for line in text.splitlines() if line.strip()]
             first = lines[0]
             if not isinstance(first, dict):
                 raise TypeError("first JSONL record must be an object")
             data = {"manifest": first.get("manifest", first), "items": lines[1:]}
-        except (json.JSONDecodeError, IndexError, TypeError, AttributeError) as exc:
+        except (json.JSONDecodeError, ValueError, IndexError, TypeError, AttributeError) as exc:
             die(f"{role} file {path} is neither JSON {{'manifest','items'}} nor JSONL (manifest line then item lines) ({exc}).")
     if not isinstance(data, dict) or "manifest" not in data or "items" not in data:
         die(f"{role} file {path} must be an object with 'manifest' and 'items' keys.")
@@ -59,6 +62,9 @@ def load(path, role):
         die(f"{role} items must be an array.")
     if "fixture_hash" not in data["manifest"]:
         die(f"{role} manifest has no 'fixture_hash'. Every run must record the fixture content hash; a run without one cannot be compared.")
+    fixture_hash = data["manifest"]["fixture_hash"]
+    if not isinstance(fixture_hash, str) or not fixture_hash:
+        die(f"{role} fixture_hash must be a non-empty string.")
     seen = set()
     for item in data["items"]:
         if not isinstance(item, dict):

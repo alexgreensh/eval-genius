@@ -28,7 +28,7 @@ def parse_records(text):
                 raise TypeError("JSON object needs an 'items' array")
             return data["items"]
         return data
-    except json.JSONDecodeError:
+    except (json.JSONDecodeError, ValueError):
         return [json.loads(line) for line in text.splitlines() if line.strip()]
 
 
@@ -46,7 +46,7 @@ def load(path):
         fail(f"cannot read {path} as UTF-8 ({exc})")
     try:
         items = parse_records(text)
-    except (json.JSONDecodeError, KeyError, TypeError) as exc:
+    except (json.JSONDecodeError, ValueError, KeyError, TypeError) as exc:
         fail(f"{path} is not a per-item JSON/JSONL file ({exc}). Need records with 'id' and finite numeric 'score'.")
     if not isinstance(items, list):
         fail(f"{path} items must be an array.")
@@ -57,7 +57,11 @@ def load(path):
         item_id, score = item.get("id"), item.get("score")
         if not isinstance(item_id, str) or not item_id:
             fail(f"record {item!r} in {path} needs a non-empty string 'id'.")
-        if not isinstance(score, (int, float)) or isinstance(score, bool) or not math.isfinite(score):
+        try:
+            finite_score = isinstance(score, (int, float)) and not isinstance(score, bool) and math.isfinite(score)
+        except OverflowError:
+            finite_score = False
+        if not finite_score:
             fail(f"record {item!r} in {path} needs a finite numeric 'score'.")
         cluster = item.get("cluster", item_id)
         if not scalar(cluster):
