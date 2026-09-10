@@ -85,20 +85,28 @@ Eval Geniusは、その欠けていた判断力を、あなたのAIエージェ�
 
 ## インストール
 
-スキルはただのフォルダです。あなたのエージェントが探す場所に置いてください:
+Eval Genius は Claude Code プラグインです。マーケットプレースを一度追加すれば、あとはインストールするだけです:
 
 ```bash
-# Claude Code
-cp -R skill ~/.claude/skills/eval-genius
+# in Claude Code
+/plugin marketplace add alexgreensh/eval-genius
+/plugin install eval-genius@eval-genius
+```
 
-# その他のエージェント: skill/SKILL.md を指定するか、skill/ フォルダをスキルパスに追加
+プレーンなスキルフォルダを使いたい、または別のエージェントを使いたい? スキルは `skills/eval-genius/` にあります。あなたのエージェントが探す場所にコピーしてください:
+
+```bash
+cp -R skills/eval-genius ~/.claude/skills/eval-genius
+# Any other agent: point it at skills/eval-genius/SKILL.md
 ```
 
 あとは平易な言葉で話しかけるだけです(*「チャットボットにevalは必要?」*、*「この差は本物?」*、*「ジャッジをキャリブレーションして」*)。スクリプトは単独でも動きます:
 
 ```bash
-python3 skill/scripts/check_gate.py --baseline base.json --treatment treat.json
+python3 skills/eval-genius/scripts/check_gate.py --baseline base.json --treatment treat.json
 ```
+
+Windows では、Python がそのようにインストールされている場合、`python3` の代わりに `py -3` を使ってください。
 
 ## 背景の考え方に興味がありますか?
 

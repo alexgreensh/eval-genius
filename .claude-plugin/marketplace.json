@@ -1,0 +1,17 @@
+{
+  "name": "eval-genius",
+  "description": "Eval Genius: the skill that decides, builds, gates, judges, and defends evaluations for AI systems.",
+  "owner": {
+    "name": "Alex Greenshpun",
+    "url": "https://alexgreenshpun.com"
+  },
+  "plugins": [
+    {
+      "name": "eval-genius",
+      "source": "./",
+      "description": "Decide, design, gate, judge, and defend evaluations for LLM, agent, and retrieval systems. Not ordinary unit tests.",
+      "license": "Apache-2.0",
+      "keywords": ["evaluation", "evals", "llm", "agents", "rag", "benchmark", "ci", "testing"]
+    }
+  ]
+}

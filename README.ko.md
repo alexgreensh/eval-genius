@@ -85,20 +85,28 @@ Eval Genius는 그 빠진 판단력을, AI 에이전트가 당신과 *함께* �
 
 ## 설치
 
-스킬은 그냥 폴더입니다. 에이전트가 찾는 곳에 두세요:
+Eval Genius는 Claude Code 플러그인입니다. 마켓플레이스를 한 번 추가한 뒤 설치하세요:
 
 ```bash
-# Claude Code
-cp -R skill ~/.claude/skills/eval-genius
+# in Claude Code
+/plugin marketplace add alexgreensh/eval-genius
+/plugin install eval-genius@eval-genius
+```
 
-# 다른 에이전트: skill/SKILL.md를 가리키거나, skill/ 폴더를 스킬 경로에 추가
+일반 스킬 폴더를 선호하거나, 다른 에이전트를 사용하나요? 스킬은 `skills/eval-genius/`에 있습니다. 에이전트가 찾는 곳에 복사하세요:
+
+```bash
+cp -R skills/eval-genius ~/.claude/skills/eval-genius
+# Any other agent: point it at skills/eval-genius/SKILL.md
 ```
 
 그런 다음 평범한 말로 이야기하세요 (*"내 챗봇에 평가가 필요할까?"*, *"이 델타 진짜야?"*, *"내 판정자 보정해줘"*). 스크립트는 단독으로도 실행됩니다:
 
 ```bash
-python3 skill/scripts/check_gate.py --baseline base.json --treatment treat.json
+python3 skills/eval-genius/scripts/check_gate.py --baseline base.json --treatment treat.json
 ```
+
+Windows에서는 Python이 그렇게 설치되어 있다면 `python3` 대신 `py -3`를 사용하세요.
 
 ## 추론이 궁금하신가?
 

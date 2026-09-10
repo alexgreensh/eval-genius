@@ -85,20 +85,28 @@ Eval Genius 就是那个缺失的判断力，被打包成你的 AI agent *和你
 
 ## 安装
 
-技能就是一个文件夹。放到你的 agent 查找技能的位置：
+Eval Genius 是一个 Claude Code 插件。添加一次 marketplace，然后安装：
 
 ```bash
-# Claude Code
-cp -R skill ~/.claude/skills/eval-genius
+# in Claude Code
+/plugin marketplace add alexgreensh/eval-genius
+/plugin install eval-genius@eval-genius
+```
 
-# 其他任意 agent：把路径指向 skill/SKILL.md，或把 skill/ 文件夹加到它的技能路径里
+想用普通技能文件夹，或用别的 agent？技能在 `skills/eval-genius/`，复制到你的 agent 查找技能的位置：
+
+```bash
+cp -R skills/eval-genius ~/.claude/skills/eval-genius
+# Any other agent: point it at skills/eval-genius/SKILL.md
 ```
 
 然后用大白话跟它说话（*"我的聊天机器人需要 eval 吗？"*、*"这个 delta 是真的吗？"*、*"校准我的 judge"*）。脚本也能独立运行：
 
 ```bash
-python3 skill/scripts/check_gate.py --baseline base.json --treatment treat.json
+python3 skills/eval-genius/scripts/check_gate.py --baseline base.json --treatment treat.json
 ```
+
+在 Windows 上，如果 Python 是那样安装的，用 `py -3` 代替 `python3`。
 
 ## 想了解背后的推理？
 

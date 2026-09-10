@@ -23,20 +23,20 @@ jobs:
           python-version: "3.10"
       - name: Compile scripts
         shell: bash
-        run: python -m py_compile skill/scripts/*.py
+        run: python -m py_compile skills/eval-genius/scripts/*.py
       - name: Run tests
         run: python -m unittest discover -s tests -v
       - name: Verify gate exit-code contract
         shell: bash
         run: |
           set +e
-          python skill/scripts/check_gate.py --baseline tests/fixtures/pass-baseline.json --treatment tests/fixtures/pass-treatment.json
+          python skills/eval-genius/scripts/check_gate.py --baseline tests/fixtures/pass-baseline.json --treatment tests/fixtures/pass-treatment.json
           pass_code=$?
-          fail_output=$(python skill/scripts/check_gate.py --baseline tests/fixtures/pass-baseline.json --treatment tests/fixtures/fail-treatment.json 2>&1)
+          fail_output=$(python skills/eval-genius/scripts/check_gate.py --baseline tests/fixtures/pass-baseline.json --treatment tests/fixtures/fail-treatment.json 2>&1)
           fail_code=$?
-          python skill/scripts/check_gate.py --baseline tests/fixtures/pass-baseline.json --treatment tests/fixtures/cannot-measure-treatment.json
+          python skills/eval-genius/scripts/check_gate.py --baseline tests/fixtures/pass-baseline.json --treatment tests/fixtures/cannot-measure-treatment.json
           cannot_code=$?
-          python skill/scripts/check_gate.py --baseline tests/fixtures/unicode-baseline.json --treatment tests/fixtures/unicode-treatment.json
+          python skills/eval-genius/scripts/check_gate.py --baseline tests/fixtures/unicode-baseline.json --treatment tests/fixtures/unicode-treatment.json
           unicode_code=$?
           set -e
           test "$pass_code" -eq 0
@@ -47,3 +47,23 @@ jobs:
           if printf '%s' "$fail_output" | grep -q 'Traceback'; then
             exit 1
           fi
+
+  plugin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate plugin manifest and skill layout
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, sys, pathlib
+          manifest = json.loads(pathlib.Path(".claude-plugin/plugin.json").read_text(encoding="utf-8"))
+          assert manifest.get("name") == "eval-genius", f"plugin name is {manifest.get('name')!r}"
+          for field in ("version", "description"):
+              assert manifest.get(field), f"plugin.json missing {field}"
+          skill = pathlib.Path("skills/eval-genius/SKILL.md")
+          assert skill.is_file(), "skills/eval-genius/SKILL.md is missing"
+          head = skill.read_text(encoding="utf-8")
+          assert "name: eval-genius" in head, "SKILL.md frontmatter name must be eval-genius"
+          print("plugin manifest and skill layout OK")
+          PY

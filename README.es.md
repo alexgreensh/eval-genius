@@ -85,20 +85,28 @@ Tres scripts de librería estándar se incluyen con la skill y se ejecutan de fo
 
 ## Instalación
 
-Las skills son solo una carpeta. Ponla donde tu agente las busca:
+Eval Genius es un plugin de Claude Code. Añade el marketplace una vez y luego instala:
 
 ```bash
-# Claude Code
-cp -R skill ~/.claude/skills/eval-genius
+# in Claude Code
+/plugin marketplace add alexgreensh/eval-genius
+/plugin install eval-genius@eval-genius
+```
 
-# Cualquier otro agente: apúntalo a skill/SKILL.md, o añade la carpeta skill/ a su ruta de skills
+¿Prefieres una carpeta de skill normal, o usar otro agente? La skill vive en `skills/eval-genius/` — cópiala donde tu agente busque skills:
+
+```bash
+cp -R skills/eval-genius ~/.claude/skills/eval-genius
+# Any other agent: point it at skills/eval-genius/SKILL.md
 ```
 
 Luego háblale en lenguaje plano (*"¿necesito evals para mi chatbot?"*, *"¿este delta es real?"*, *"calibra mi juez"*). Los scripts también se ejecutan por su cuenta:
 
 ```bash
-python3 skill/scripts/check_gate.py --baseline base.json --treatment treat.json
+python3 skills/eval-genius/scripts/check_gate.py --baseline base.json --treatment treat.json
 ```
+
+En Windows, usa `py -3` en lugar de `python3` si así es como Python está instalado.
 
 ## ¿Curioso sobre el razonamiento?
 

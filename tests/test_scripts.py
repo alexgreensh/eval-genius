@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPTS = ROOT / "skill" / "scripts"
+SCRIPTS = ROOT / "skills" / "eval-genius" / "scripts"
 
 
 class CLITest(unittest.TestCase):

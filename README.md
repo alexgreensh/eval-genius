@@ -75,29 +75,36 @@ It walks the whole path, and meets you at any point on it, including the start:
 
 <p align="center"><img src="assets/img/scripts.png" alt="Eval Genius at a desk with a checklist, a bell curve, and a judge-vs-human scale" width="100%"></p>
 
-Three standard-library scripts ship with the skill and run standalone:
+Four standard-library scripts ship with the skill and run standalone:
 
 | Script | What it settles |
 |---|---|
 | `check_gate.py` | Compares a change against its baseline per item; exits **0 PASS**, **1 FAIL**, **2 CANNOT-MEASURE**, so a crash can never masquerade as a pass |
 | `paired_bootstrap.py` | Puts a confidence interval on the difference, so "it improved" actually means something |
 | `judge_agreement.py` | Measures how much your LLM judge agrees with human labels, before you let it grade anything |
+| `hash_fixture.py` | Prints the canonical `fixture_hash` the gate demands, so two runs on the same fixture compare instead of silently mismatching |
 
 ## Install
 
-Skills are just a folder. Put it where your agent looks for them:
+Eval Genius is a Claude Code plugin. Add the marketplace once, then install:
 
 ```bash
-# Claude Code
-cp -R skill ~/.claude/skills/eval-genius
+# in Claude Code
+/plugin marketplace add alexgreensh/eval-genius
+/plugin install eval-genius@eval-genius
+```
 
-# Any other agent: point it at skill/SKILL.md, or add the skill/ folder to its skills path
+Prefer a plain skill folder, or using another agent? The skill lives at `skills/eval-genius/` — copy it wherever your agent looks for skills:
+
+```bash
+cp -R skills/eval-genius ~/.claude/skills/eval-genius
+# Any other agent: point it at skills/eval-genius/SKILL.md
 ```
 
 Then talk to it in plain language (*"do I need evals for my chatbot?"*, *"is this delta real?"*, *"calibrate my judge"*). The scripts also run on their own:
 
 ```bash
-python3 skill/scripts/check_gate.py --baseline base.json --treatment treat.json
+python3 skills/eval-genius/scripts/check_gate.py --baseline base.json --treatment treat.json
 ```
 
 On Windows, use `py -3` instead of `python3` if that is how Python is installed.
