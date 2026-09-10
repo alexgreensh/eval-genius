@@ -40,9 +40,12 @@ def load(path):
         sys.exit(f"error: {path} is not a per-item JSON/JSONL file ({e}). Need records with 'id' and numeric 'score'.")
     out = {}
     for it in items:
-        if "id" not in it or not isinstance(it.get("score"), (int, float)):
+        if "id" not in it or not isinstance(it.get("score"), (int, float)) or isinstance(it.get("score"), bool):
             sys.exit(f"error: record {it!r} in {path} needs 'id' and a numeric 'score'.")
-        out[it["id"]] = it
+        item_id = str(it["id"])
+        if item_id in out:
+            sys.exit(f"error: {path} contains duplicate item id {item_id!r}.")
+        out[item_id] = it
     return out
 
 
@@ -54,12 +57,19 @@ def main():
     ap.add_argument("--seed", type=int, default=0)
     args = ap.parse_args()
 
+    if args.reps < 1:
+        sys.exit("error: --reps must be at least 1.")
+
     A, B = load(args.a), load(args.b)
     if set(A) != set(B):
         sys.exit(f"error: item ids differ ({len(set(A)-set(B))} only in a, {len(set(B)-set(A))} only in b). Paired analysis needs identical item sets.")
     ids = sorted(A)
     if len(ids) < 2:
         sys.exit("error: need at least 2 paired items.")
+
+    cluster_mismatches = [i for i in ids if A[i].get("cluster", i) != B[i].get("cluster", i)]
+    if cluster_mismatches:
+        sys.exit("error: cluster assignments differ between arms for ids: " + ", ".join(cluster_mismatches[:20]))
 
     deltas = {i: B[i]["score"] - A[i]["score"] for i in ids}
     clusters = {}

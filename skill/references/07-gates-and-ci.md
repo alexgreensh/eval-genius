@@ -96,3 +96,24 @@ Both are per-item records already, so they ride the same diff.
 A gate definition: tier, fixture hash, comparison rule, tolerance, baseline location
 and promotion rule, flake policy, negative control, cost/latency limits, and the exit
 code contract CI honors.
+
+## CI shell contract
+
+A gate command has three meaningful exits. CI must preserve all of them even though
+the job UI ultimately shows only success or failure:
+
+```bash
+set +e
+python3 path/to/check_gate.py --baseline "$BASELINE" --treatment "$TREATMENT"
+code=$?
+set -e
+case "$code" in
+  0) echo "PASS: the measured bar was met" ;;
+  1) echo "FAIL: the run was valid and the bar was missed"; exit 1 ;;
+  2) echo "CANNOT-MEASURE: the instrument or comparison was invalid"; exit 2 ;;
+  *) echo "CANNOT-MEASURE: unexpected gate exit $code"; exit 2 ;;
+esac
+```
+
+Store the per-item records and manifest as CI artifacts on every outcome. A red job
+without the records cannot distinguish a product regression from a broken gauge.

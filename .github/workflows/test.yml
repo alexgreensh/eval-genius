@@ -1,0 +1,35 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Compile scripts
+        run: python -m py_compile skill/scripts/*.py
+      - name: Run tests
+        run: python -m unittest discover -s tests -v
+      - name: Verify gate exit-code contract
+        shell: bash
+        run: |
+          set +e
+          python skill/scripts/check_gate.py --baseline tests/fixtures/pass-baseline.json --treatment tests/fixtures/pass-treatment.json
+          pass_code=$?
+          python skill/scripts/check_gate.py --baseline tests/fixtures/pass-baseline.json --treatment tests/fixtures/fail-treatment.json
+          fail_code=$?
+          python skill/scripts/check_gate.py --baseline tests/fixtures/pass-baseline.json --treatment tests/fixtures/cannot-measure-treatment.json
+          cannot_code=$?
+          set -e
+          test "$pass_code" -eq 0
+          test "$fail_code" -eq 1
+          test "$cannot_code" -eq 2

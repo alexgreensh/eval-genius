@@ -37,7 +37,10 @@ def load(path):
     for r in rows:
         if "id" not in r or "label" not in r:
             print(f"CANNOT-MEASURE: record {r!r} in {path} needs 'id' and 'label'", file=sys.stderr); sys.exit(2)
-        out[str(r["id"])] = str(r["label"]).strip().lower()
+        item_id = str(r["id"])
+        if item_id in out:
+            print(f"CANNOT-MEASURE: {path} contains duplicate item id {item_id!r}", file=sys.stderr); sys.exit(2)
+        out[item_id] = str(r["label"]).strip().lower()
     return out
 
 
@@ -57,6 +60,9 @@ def main():
     ap.add_argument("--positive", default="pass")
     ap.add_argument("--floor", type=float, default=0.8, help="0.67 diagnostic use, 0.8 gate (default), 0.9 where a wrong grade harms a user")
     a = ap.parse_args()
+
+    if not -1.0 <= a.floor <= 1.0:
+        print("CANNOT-MEASURE: --floor must be between -1 and 1.", file=sys.stderr); sys.exit(2)
 
     H, J = load(a.human), load(a.judge)
     common = sorted(set(H) & set(J))

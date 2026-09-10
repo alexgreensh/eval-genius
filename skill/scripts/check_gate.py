@@ -49,9 +49,14 @@ def load(path, role):
         die(f"{role} file {path} must be an object with 'manifest' and 'items' keys.")
     if "fixture_hash" not in data["manifest"]:
         die(f"{role} manifest has no 'fixture_hash'. Every run must record the fixture content hash; a run without one cannot be compared.")
+    seen = set()
     for it in data["items"]:
         if "id" not in it or it.get("verdict") not in ("pass", "fail", "error"):
             die(f"{role} item {it!r} needs an 'id' and a verdict in pass|fail|error.")
+        item_id = str(it["id"])
+        if item_id in seen:
+            die(f"{role} contains duplicate item id {item_id!r}. Duplicate ids make per-item comparison ambiguous.")
+        seen.add(item_id)
     return data
 
 
@@ -65,6 +70,13 @@ def main():
     ap.add_argument("--layer", default=None, help="only compare items whose 'layer' field equals this")
     ap.add_argument("--no-negative-control", action="store_true", help="waive the mandatory negative control (state the reason in the pre-registration)")
     a = ap.parse_args()
+
+    if not 0.0 <= a.tolerance <= 1.0:
+        die("--tolerance must be between 0 and 1.")
+    if a.max_regressions < 0:
+        die("--max-regressions must be zero or greater.")
+    if not 0.0 <= a.error_budget <= 1.0:
+        die("--error-budget must be between 0 and 1.")
 
     base, treat = load(a.baseline, "baseline"), load(a.treatment, "treatment")
 
@@ -95,6 +107,8 @@ def main():
         del bi[nc]; del ti[nc]
 
     n = len(ti)
+    if n == 0:
+        die("no scored items remain after removing the negative control.")
     errs = sum(1 for i in ti.values() if i["verdict"] == "error")
     if n and errs / n > a.error_budget:
         die(f"{errs}/{n} treatment items errored ({errs/n:.1%}) > error budget {a.error_budget:.1%}. Fix the harness; a run with holes is not a scored run.")

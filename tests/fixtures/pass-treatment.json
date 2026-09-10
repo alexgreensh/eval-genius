@@ -1,0 +1,1 @@
+{"manifest":{"fixture_hash":"fixture-v1","liveness":"passed","negative_control_id":"known-bad"},"items":[{"id":"known-bad","verdict":"fail"},{"id":"case-1","verdict":"pass"},{"id":"case-2","verdict":"pass"}]}

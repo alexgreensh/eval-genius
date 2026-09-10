@@ -24,6 +24,27 @@ fixture  ->  runner  ->  scorer  ->  reporter
 The separation means a scorer bug is fixed and re-applied to stored raw outputs without
 re-running the system, and a runner change cannot quietly alter grading.
 
+## Standardize the seams, not the harness
+
+The four-part architecture is a contract, not a prescribed framework. A RAG eval may
+need a frozen corpus and retrieval trace; a coding agent may need a disposable container
+and hidden tests; a customer-support agent may need a simulated conversation and final
+CRM state. Build the runner and scorer that exercise the real mechanism. Do not force
+all three through one provider SDK or one generic text-in/text-out loop.
+
+Whatever the use case, keep these portable seams:
+
+- fixture items have stable, unique ids and an immutable content hash;
+- the runner stores raw output, trace or state evidence before scoring;
+- the scorer emits one record per id and can abstain or error without calling it a fail;
+- the reporter consumes records rather than calling the system;
+- baseline and treatment use the same adapter, budget, timeout and item order policy;
+- cache mode, retries, concurrency and provider/model identity are explicit in the manifest.
+
+Existing eval tools can implement any seam. Reuse their provider adapters, task
+registries, metrics or trace capture when they fit; preserve this record contract around
+them so the comparison and gate remain auditable.
+
 ## Per-item records, not aggregates
 
 The scorer emits one record per item:
