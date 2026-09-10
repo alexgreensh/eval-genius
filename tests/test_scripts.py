@@ -290,7 +290,15 @@ class CLITest(unittest.TestCase):
         a, b = self.write("a.json", data), self.write("b.json", data)
         result = self.cli("paired_bootstrap.py", "--a", a, "--b", b, "--reps", "100000")
         self.assertEqual(result.returncode, 1)
-        self.assertIn("exceeds 10000000 resampled units", result.stderr)
+        self.assertIn("exceeds 10000000 resampled item values", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_bootstrap_work_cap_cannot_be_bypassed_by_one_cluster(self):
+        data = {"items": [{"id": str(i), "score": i % 2, "cluster": "all"} for i in range(101)]}
+        a, b = self.write("a.json", data), self.write("b.json", data)
+        result = self.cli("paired_bootstrap.py", "--a", a, "--b", b, "--reps", "100000")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("101 items x 100000 reps", result.stderr)
         self.assertNotIn("Traceback", result.stderr)
 
     def test_bootstrap_valid_pair(self):
