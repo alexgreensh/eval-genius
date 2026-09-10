@@ -63,14 +63,14 @@ def load(path, role):
     if "fixture_hash" not in data["manifest"]:
         die(f"{role} manifest has no 'fixture_hash'. Every run must record the fixture content hash; a run without one cannot be compared.")
     fixture_hash = data["manifest"]["fixture_hash"]
-    if not isinstance(fixture_hash, str) or not fixture_hash:
+    if not isinstance(fixture_hash, str) or not fixture_hash.strip():
         die(f"{role} fixture_hash must be a non-empty string.")
     seen = set()
     for item in data["items"]:
         if not isinstance(item, dict):
             die(f"{role} item {item!r} must be an object.")
         item_id = item.get("id")
-        if not isinstance(item_id, str) or not item_id:
+        if not isinstance(item_id, str) or not item_id.strip():
             die(f"{role} item {item!r} needs a non-empty string 'id'.")
         if item.get("verdict") not in ("pass", "fail", "error"):
             die(f"{role} item {item!r} needs a verdict in pass|fail|error.")
@@ -118,7 +118,7 @@ def main():
     if not control and not args.no_negative_control:
         die("no negative_control_id in either manifest. Every gate run must include a known-bad item that the scorer fails; add one, or pass --no-negative-control to waive it with a written reason in the pre-registration.")
     if control:
-        if not isinstance(control, str) or not control:
+        if not isinstance(control, str) or not control.strip():
             die("negative_control_id must be a non-empty string.")
         if control not in baseline_all or control not in treatment_all:
             die(f"negative control item {control!r} must be present in both runs.")

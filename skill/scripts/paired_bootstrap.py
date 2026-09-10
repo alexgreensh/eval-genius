@@ -13,6 +13,7 @@ import statistics
 import sys
 
 MAX_REPS = 100_000
+MAX_RESAMPLED_UNITS = 10_000_000
 
 
 def fail(message):
@@ -103,6 +104,8 @@ def main():
     for item_id in ids:
         clusters.setdefault(a_items[item_id].get("cluster", item_id), []).append(deltas[item_id])
     units = list(clusters.values())
+    if len(units) * args.reps > MAX_RESAMPLED_UNITS:
+        fail(f"requested bootstrap work is too large: {len(units)} units x {args.reps} reps exceeds {MAX_RESAMPLED_UNITS} resampled units. Reduce --reps or group related items with a shared cluster.")
     unit_name = "clusters" if len(units) < len(ids) else "items"
     rng = random.Random(args.seed)
     means = []

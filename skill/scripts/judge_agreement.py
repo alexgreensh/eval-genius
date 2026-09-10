@@ -55,7 +55,7 @@ def load(path, allowed_labels):
         if not isinstance(row, dict):
             cannot(f"record {row!r} in {path} must be an object.")
         item_id, label = row.get("id"), row.get("label")
-        if not isinstance(item_id, str) or not item_id:
+        if not isinstance(item_id, str) or not item_id.strip():
             cannot(f"record {row!r} in {path} needs a non-empty string 'id'.")
         if not isinstance(label, str) or label.strip().lower() not in allowed_labels:
             cannot(f"record {row!r} in {path} needs a string label in {sorted(allowed_labels)}.")

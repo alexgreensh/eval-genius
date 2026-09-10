@@ -147,6 +147,19 @@ class CLITest(unittest.TestCase):
                 self.assertEqual(result.returncode, 2)
                 self.assertNotIn("Traceback", result.stderr)
 
+    def test_gate_rejects_whitespace_only_identifiers(self):
+        valid_items = [{"id": "bad", "verdict": "fail"}, {"id": "x", "verdict": "pass"}]
+        for data in (
+            self.gate(valid_items, fixture="   "),
+            self.gate([{"id": "bad", "verdict": "fail"}, {"id": "   ", "verdict": "pass"}]),
+            self.gate([{"id": "   ", "verdict": "fail"}, {"id": "x", "verdict": "pass"}], control="   "),
+        ):
+            with self.subTest(data=data):
+                a, b = self.write("a.json", data), self.write("b.json", data)
+                result = self.cli("check_gate.py", "--baseline", a, "--treatment", b)
+                self.assertEqual(result.returncode, 2)
+                self.assertNotIn("Traceback", result.stderr)
+
     def test_gate_rejects_non_string_or_empty_fixture_hash(self):
         items = [{"id": "bad", "verdict": "fail"}, {"id": "x", "verdict": "pass"}]
         for value in (None, [], {}, True, 123, ""):
@@ -272,6 +285,14 @@ class CLITest(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertNotIn("Traceback", result.stderr)
 
+    def test_bootstrap_caps_total_resampling_work(self):
+        data = {"items": [{"id": str(i), "score": i % 2} for i in range(101)]}
+        a, b = self.write("a.json", data), self.write("b.json", data)
+        result = self.cli("paired_bootstrap.py", "--a", a, "--b", b, "--reps", "100000")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("exceeds 10000000 resampled units", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
     def test_bootstrap_valid_pair(self):
         a_data = {"items": [{"id": "x", "score": 0}, {"id": "y", "score": 1}]}
         b_data = {"items": [{"id": "x", "score": 1}, {"id": "y", "score": 1}]}
@@ -328,6 +349,14 @@ class CLITest(unittest.TestCase):
         a, b = self.write("human.json", human), self.write("judge.json", judge)
         result = self.cli("judge_agreement.py", "--human", a, "--judge", b, "--floor", "-1")
         self.assertEqual(result.returncode, 0)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_judge_rejects_whitespace_only_id(self):
+        data = {"items": [{"id": str(i), "label": "pass" if i % 2 else "fail"} for i in range(50)]}
+        data["items"][0]["id"] = "   "
+        a, b = self.write("human.json", data), self.write("judge.json", data)
+        result = self.cli("judge_agreement.py", "--human", a, "--judge", b)
+        self.assertEqual(result.returncode, 2)
         self.assertNotIn("Traceback", result.stderr)
 
     def test_judge_rejects_duplicate_ids(self):
