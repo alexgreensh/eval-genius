@@ -75,13 +75,14 @@ Recorre el camino completo, y te encuentra en cualquier punto de él, incluido e
 
 <p align="center"><img src="assets/img/scripts.png" alt="Eval Genius en un escritorio con una checklist, una curva de campana y una balanza juez-vs-humano" width="100%"></p>
 
-Tres scripts de librería estándar se incluyen con la skill y se ejecutan de forma independiente:
+Cuatro scripts de librería estándar se incluyen con la skill y se ejecutan de forma independiente:
 
 | Script | Lo que resuelve |
 |---|---|
 | `check_gate.py` | Compara un cambio contra su baseline por ítem; sale con **0 PASS**, **1 FAIL**, **2 CANNOT-MEASURE**, así un crash nunca puede hacerse pasar por un pass |
 | `paired_bootstrap.py` | Pone un intervalo de confianza en la diferencia, así "mejoró" realmente significa algo |
 | `judge_agreement.py` | Mide cuánto tu juez LLM coincide con etiquetas humanas, antes de dejarlo calificar nada |
+| `hash_fixture.py` | Imprime el `fixture_hash` canónico que exige el gate, para que dos ejecuciones sobre el mismo fixture se comparen en vez de discrepar en silencio |
 
 ## Instalación
 

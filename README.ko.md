@@ -75,13 +75,14 @@ Eval Genius는 그 빠진 판단력을, AI 에이전트가 당신과 *함께* �
 
 <p align="center"><img src="assets/img/scripts.png" alt="Eval Genius at a desk with a checklist, a bell curve, and a judge-vs-human scale" width="100%"></p>
 
-세 개의 표준 라이브러리 스크립트가 스킬과 함께 제공되며 단독으로 실행됩니다:
+네 개의 표준 라이브러리 스크립트가 스킬과 함께 제공되며 단독으로 실행됩니다:
 
 | 스크립트 | 정해주는 것 |
 |---|---|
 | `check_gate.py` | 변경을 항목별로 베이스라인과 비교, **0 PASS**, **1 FAIL**, **2 CANNOT-MEASURE**로 종료, 크래시가 통과로 위장하지 못하게 |
 | `paired_bootstrap.py` | 차이에 신뢰 구간을 부여, "개선됐다"가 실제로 의미를 갖게 |
 | `judge_agreement.py` | 판정자(judge)가 무엇이든 평가하게 두기 전에, LLM 판정자가 사람 라벨과 얼마나 일치하는지 측정 |
+| `hash_fixture.py` | 게이트가 요구하는 정규 `fixture_hash`를 출력하여, 같은 픽스처의 두 실행이 조용히 어긋나는 대신 비교되도록 한다 |
 
 ## 설치
 

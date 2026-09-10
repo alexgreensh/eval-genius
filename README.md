@@ -66,7 +66,7 @@ It walks the whole path, and meets you at any point on it, including the start:
 
 - **Decides whether you need an eval at all**, and which kind belongs at your stage, from first prototype to production.
 - **Picks the eval:** what to measure, which grader (code first, a judge only where no assertion works), which metric, how many examples, adopt a public benchmark or build your own.
-- **Builds and gates it:** fixture, runner, scorer, reporter, a bar written before the run, and a CI gate that ends in PASS, FAIL, or CANNOT-MEASURE and refuses to compare mismatched runs.
+- **Builds and gates it:** fixture, runner, scorer, reporter, a bar written before the run, and a CI gate that ends in PASS, FAIL, or CANNOT-MEASURE and refuses to compare runs on mismatched fixtures or judges.
 - **Reads the result with you:** against the bar you wrote, with noise bounds, per-item diffs, and a harness-bug check before any surprising number is believed.
 - **Writes it up honestly,** with caveats, tiers, and the comparison rule stated out loud.
 - **Refuses the shortcuts** that produce pretty lies: bars moved after the fact, blended scores, run-until-green, and judges nobody calibrated.

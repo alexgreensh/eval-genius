@@ -75,13 +75,14 @@ Eval Geniusは、その欠けていた判断力を、あなたのAIエージェ�
 
 <p align="center"><img src="assets/img/scripts.png" alt="Eval Genius at a desk with a checklist, a bell curve, and a judge-vs-human scale" width="100%"></p>
 
-3つの標準ライブラリのスクリプトがスキルに同梱され、単独で動きます:
+4つの標準ライブラリのスクリプトがスキルに同梱され、単独で動きます:
 
 | Script | 何を解決するか |
 |---|---|
 | `check_gate.py` | 変更をベースラインに対して項目ごとに比較し、**0 PASS**、**1 FAIL**、**2 CANNOT-MEASURE** で終了するため、クラッシュが合格を装うことは絶対にない |
 | `paired_bootstrap.py` | 差に信頼区間を与え、「改善した」が実際に意味を持つようにする |
 | `judge_agreement.py` | LLMジャッジが人間のラベルとどれくらい一致するかを、採点を任せる前に測定する |
+| `hash_fixture.py` | ゲートが要求する正規の `fixture_hash` を出力し、同じフィクスチャでの2回の実行が黙って食い違わずに比較できるようにする |
 
 ## インストール
 
