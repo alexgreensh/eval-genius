@@ -56,7 +56,7 @@ def load(path):
         if not isinstance(item, dict):
             fail(f"record {item!r} in {path} must be an object.")
         item_id, score = item.get("id"), item.get("score")
-        if not isinstance(item_id, str) or not item_id:
+        if not isinstance(item_id, str) or not item_id.strip():
             fail(f"record {item!r} in {path} needs a non-empty string 'id'.")
         try:
             finite_score = isinstance(score, (int, float)) and not isinstance(score, bool) and math.isfinite(score)
@@ -116,8 +116,12 @@ def main():
             fail("bootstrap sample overflowed; scores are too large.")
         means.append(sample_mean)
     means.sort()
-    low = means[int(0.025 * args.reps)]
-    high = means[max(0, int(0.975 * args.reps) - 1)]
+    # Nearest-rank percentile: the 1-indexed rank ceil(p*reps) maps to the
+    # 0-indexed value ceil(p*reps)-1. Using int() truncated toward the middle,
+    # narrowing the interval (the anti-conservative direction) whenever p*reps
+    # landed on an integer or fractional boundary.
+    low = means[max(0, math.ceil(0.025 * args.reps) - 1)]
+    high = means[min(args.reps - 1, max(0, math.ceil(0.975 * args.reps) - 1))]
     mean = statistics.fmean(deltas.values())
     if not math.isfinite(mean):
         fail("mean delta overflowed; scores are too large.")

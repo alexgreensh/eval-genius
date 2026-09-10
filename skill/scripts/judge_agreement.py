@@ -7,6 +7,11 @@ At least 50 shared IDs and 80% coverage of each file are required by default.
 
 Exit 0 when kappa meets the floor, 1 when measured agreement is below it, and 2 when
 the calibration cannot be measured safely.
+
+Behavior change: labels are now restricted to the --labels set (default pass,fail);
+a value outside it, or a non-string id, is CANNOT-MEASURE. For a multi-class rubric
+pass every class via --labels (e.g. --labels A,B,C); for numeric ids, stringify them
+in the file first (arbitrary numeric ids are no longer coerced silently).
 """
 import argparse
 import csv

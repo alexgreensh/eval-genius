@@ -57,9 +57,11 @@ Identify the job, then load only that reference. Every job still passes through 
 Templates in `templates/` get copied into the project, never edited in place. Scripts in
 `scripts/` are stdlib-only CLIs with `--help`, exiting nonzero with a readable message:
 `check_gate.py` (per-item diff of treatment vs baseline; exits 0 PASS, 1 FAIL,
-2 CANNOT-MEASURE), `paired_bootstrap.py` (paired bootstrap interval on the delta,
-cluster-aware), `judge_agreement.py` (Cohen's kappa and PASS precision/recall of a judge
-vs human labels). Match effort to stakes: a spot check needs Step 0 and little else; a
+2 CANNOT-MEASURE; refuses a comparison across mismatched fixture or judge fingerprints),
+`paired_bootstrap.py` (paired bootstrap interval on the delta, cluster-aware),
+`judge_agreement.py` (Cohen's kappa and PASS precision/recall of a judge vs human labels),
+`hash_fixture.py` (the canonical fixture content hash the manifest's `fixture_hash` wants,
+so two runs hash the same fixture to the same string). Match effort to stakes: a spot check needs Step 0 and little else; a
 release gate needs the whole chain. Load references on demand, not all at once.
 
 ---

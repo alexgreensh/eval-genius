@@ -18,7 +18,19 @@ JSONL whose first line is {"manifest": {...}} followed by one item record per li
 
 Usage:
   check_gate.py --baseline base.json --treatment treat.json [--tolerance 0.0]
-                [--error-budget 0.02] [--layer deterministic]
+                [--error-budget 0.02] [--max-regressions 0] [--layer deterministic]
+                [--no-negative-control]
+  --tolerance          allowed drop in pass rate (0.0 = no aggregate regression)
+  --max-regressions N  fail if more than N items flip pass->fail (default 0)
+  --no-negative-control  waive the mandatory negative control (record the reason
+                       in the pre-registration)
+
+Behavior changes (stricter than earlier versions; each is CANNOT-MEASURE, never a
+silent PASS, so an archived pair can flip from scored to refused):
+  - the error budget applies to BOTH arms; a baseline over budget is refused too.
+  - negative_control_id must match between the two manifests (a one-sided control
+    is no longer honored).
+  - duplicate item ids are refused; ids must be unique within each run.
 """
 import argparse
 import json
@@ -107,6 +119,17 @@ def main():
     live = treat["manifest"].get("liveness")
     if live not in ("passed", "not-applicable"):
         die(f"treatment liveness is {live!r}; must be 'passed' or 'not-applicable'. Assert the arm under test is active before scoring.")
+
+    # If a judged layer is present, the two runs must share the same judge instrument.
+    # Comparing runs graded by different judge prompts or models is fixture drift in
+    # the grader. Checked only when both manifests declare the field; absent = skip.
+    base_judge = base["manifest"].get("judge") or {}
+    treat_judge = treat["manifest"].get("judge") or {}
+    for field in ("prompt_hash", "model_snapshot"):
+        b_val, t_val = base_judge.get(field), treat_judge.get(field)
+        if b_val is not None and t_val is not None and b_val != t_val:
+            die(f"judge {field} differs: baseline={b_val!r} treatment={t_val!r}. "
+                "Re-grade both arms with one pinned judge before comparing the judged layer.")
 
     baseline_all = {item["id"]: item for item in base["items"]}
     treatment_all = {item["id"]: item for item in treat["items"]}
