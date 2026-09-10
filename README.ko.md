@@ -111,7 +111,7 @@ python3 skill/scripts/check_gate.py --baseline base.json --treatment treat.json
 **Alex Greenshpun**이 만들었습니다. 도움이 되셨다면, 스타나 공유가 다른 사람들이 찾게 도와줍니다.
 
 <a href="https://github.com/alexgreensh"><img src="https://img.shields.io/badge/GitHub-alexgreensh-181717?logo=github&logoColor=white" alt="GitHub"></a>
-<a href="https://linkedin.com/in/alexgreensh"><img src="https://img.shields.io/badge/LinkedIn-alexgreensh-0A66C2?logo=linkedin&logoColor=white" alt="LinkedIn"></a>
+<a href="https://alexgreenshpun.com"><img src="https://img.shields.io/badge/Website-alexgreenshpun.com-8A5CF6" alt="Website"></a>
 <a href="https://x.com/alexgreensh"><img src="https://img.shields.io/badge/X-%40alexgreensh-000000?logo=x&logoColor=white" alt="X"></a>
 
 **라이선스:** [Apache 2.0](LICENSE)

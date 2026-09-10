@@ -111,7 +111,7 @@ python3 skill/scripts/check_gate.py --baseline base.json --treatment treat.json
 由 **Alex Greenshpun** 打造。如果它对你有帮助，点个 star 或分享一下，能帮更多人发现它。
 
 <a href="https://github.com/alexgreensh"><img src="https://img.shields.io/badge/GitHub-alexgreensh-181717?logo=github&logoColor=white" alt="GitHub"></a>
-<a href="https://linkedin.com/in/alexgreensh"><img src="https://img.shields.io/badge/LinkedIn-alexgreensh-0A66C2?logo=linkedin&logoColor=white" alt="LinkedIn"></a>
+<a href="https://alexgreenshpun.com"><img src="https://img.shields.io/badge/Website-alexgreenshpun.com-8A5CF6" alt="Website"></a>
 <a href="https://x.com/alexgreensh"><img src="https://img.shields.io/badge/X-%40alexgreensh-000000?logo=x&logoColor=white" alt="X"></a>
 
 **License:** [Apache 2.0](LICENSE)
