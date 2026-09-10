@@ -19,7 +19,7 @@ class CLITest(unittest.TestCase):
 
     def write(self, name, data):
         path = self.dir / name
-        path.write_text(json.dumps(data))
+        path.write_text(json.dumps(data), encoding="utf-8")
         return path
 
     def cli(self, script, *args):
@@ -105,7 +105,10 @@ class CLITest(unittest.TestCase):
         a_items = [{"id": "bad", "verdict": "fail"}, {"id": "x", "verdict": "pass"}]
         b_items = [{"id": "bad", "verdict": "fail"}, {"id": "x", "verdict": "fail"}]
         a, b = self.write("a.json", self.gate(a_items)), self.write("b.json", self.gate(b_items))
-        self.assertEqual(self.cli("check_gate.py", "--baseline", a, "--treatment", b).returncode, 1)
+        result = self.cli("check_gate.py", "--baseline", a, "--treatment", b)
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(result.stderr, "")
+        self.assertNotIn("Traceback", result.stdout + result.stderr)
 
     def test_gate_rejects_invalid_numeric_options(self):
         items = [{"id": "bad", "verdict": "fail"}, {"id": "x", "verdict": "pass"}]
@@ -115,6 +118,49 @@ class CLITest(unittest.TestCase):
             with self.subTest(flag=flag):
                 self.assertEqual(self.cli("check_gate.py", "--baseline", a, "--treatment", b,
                                           flag, value).returncode, 2)
+
+    def test_gate_rejects_mismatched_negative_controls(self):
+        a_items = [{"id": "nc-a", "verdict": "fail"}, {"id": "nc-b", "verdict": "fail"}, {"id": "x", "verdict": "pass"}]
+        b_items = [{"id": "nc-a", "verdict": "fail"}, {"id": "nc-b", "verdict": "fail"}, {"id": "x", "verdict": "pass"}]
+        a = self.write("a.json", self.gate(a_items, control="nc-a"))
+        b = self.write("b.json", self.gate(b_items, control="nc-b"))
+        result = self.cli("check_gate.py", "--baseline", a, "--treatment", b)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("negative_control_id mismatch", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_gate_applies_error_budget_to_baseline(self):
+        a_items = [{"id": "bad", "verdict": "fail"}, {"id": "x", "verdict": "error"}]
+        b_items = [{"id": "bad", "verdict": "fail"}, {"id": "x", "verdict": "pass"}]
+        a, b = self.write("a.json", self.gate(a_items)), self.write("b.json", self.gate(b_items))
+        result = self.cli("check_gate.py", "--baseline", a, "--treatment", b)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("baseline items errored", result.stderr)
+
+    def test_gate_rejects_valid_json_with_wrong_shapes(self):
+        shapes = ({"manifest": None, "items": []}, {"manifest": {}, "items": None},
+                  {"manifest": {"fixture_hash": "x"}, "items": [1]})
+        for index, shape in enumerate(shapes):
+            with self.subTest(shape=shape):
+                path = self.write(f"shape-{index}.json", shape)
+                result = self.cli("check_gate.py", "--baseline", path, "--treatment", path)
+                self.assertEqual(result.returncode, 2)
+                self.assertNotIn("Traceback", result.stderr)
+
+    def test_gate_rejects_invalid_utf8_cleanly(self):
+        path = self.dir / "invalid.json"
+        path.write_bytes(b"{\xff}")
+        result = self.cli("check_gate.py", "--baseline", path, "--treatment", path)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("as UTF-8", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_gate_rejects_non_string_id(self):
+        data = self.gate([{"id": "bad", "verdict": "fail"}, {"id": ["x"], "verdict": "pass"}])
+        a, b = self.write("a.json", data), self.write("b.json", data)
+        result = self.cli("check_gate.py", "--baseline", a, "--treatment", b)
+        self.assertEqual(result.returncode, 2)
+        self.assertNotIn("Traceback", result.stderr)
 
     def test_bootstrap_rejects_mismatched_item_sets(self):
         a_data = {"items": [{"id": "x", "score": 0}, {"id": "y", "score": 1}]}
@@ -127,7 +173,7 @@ class CLITest(unittest.TestCase):
         a, b = self.write("a.json", data), self.write("b.json", data)
         result = self.cli("paired_bootstrap.py", "--a", a, "--b", b, "--reps", "0")
         self.assertEqual(result.returncode, 1)
-        self.assertIn("--reps must be at least 1", result.stderr)
+        self.assertIn("--reps must be between 1 and 100000", result.stderr)
         self.assertNotIn("Traceback", result.stderr)
 
     def test_bootstrap_rejects_duplicate_ids(self):
@@ -148,6 +194,44 @@ class CLITest(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("cluster assignments differ", result.stderr)
 
+    def test_bootstrap_rejects_nonfinite_and_overflow_scores(self):
+        for value in (float("nan"), float("inf"), -float("inf")):
+            with self.subTest(value=value):
+                data = {"items": [{"id": "x", "score": value}, {"id": "y", "score": 1}]}
+                a, b = self.write("a.json", data), self.write("b.json", data)
+                result = self.cli("paired_bootstrap.py", "--a", a, "--b", b)
+                self.assertEqual(result.returncode, 1)
+                self.assertNotIn("Traceback", result.stderr)
+        a_data = {"items": [{"id": "x", "score": -1e308}, {"id": "y", "score": 0}]}
+        b_data = {"items": [{"id": "x", "score": 1e308}, {"id": "y", "score": 0}]}
+        a, b = self.write("overflow-a.json", a_data), self.write("overflow-b.json", b_data)
+        result = self.cli("paired_bootstrap.py", "--a", a, "--b", b)
+        self.assertEqual(result.returncode, 1)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_bootstrap_rejects_unhashable_cluster_and_wrong_id_type(self):
+        for item in ({"id": "x", "score": 0, "cluster": ["bad"]}, {"id": 1, "score": 0}):
+            with self.subTest(item=item):
+                data = {"items": [item, {"id": "y", "score": 1}]}
+                a, b = self.write("a.json", data), self.write("b.json", data)
+                result = self.cli("paired_bootstrap.py", "--a", a, "--b", b)
+                self.assertEqual(result.returncode, 1)
+                self.assertNotIn("Traceback", result.stderr)
+
+    def test_bootstrap_caps_repetitions(self):
+        data = {"items": [{"id": "x", "score": 0}, {"id": "y", "score": 1}]}
+        a, b = self.write("a.json", data), self.write("b.json", data)
+        result = self.cli("paired_bootstrap.py", "--a", a, "--b", b, "--reps", "100001")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("between 1 and 100000", result.stderr)
+
+    def test_bootstrap_rejects_invalid_utf8_cleanly(self):
+        path = self.dir / "invalid.json"
+        path.write_bytes(b"{\xff}")
+        result = self.cli("paired_bootstrap.py", "--a", path, "--b", path)
+        self.assertEqual(result.returncode, 1)
+        self.assertNotIn("Traceback", result.stderr)
+
     def test_bootstrap_valid_pair(self):
         a_data = {"items": [{"id": "x", "score": 0}, {"id": "y", "score": 1}]}
         b_data = {"items": [{"id": "x", "score": 1}, {"id": "y", "score": 1}]}
@@ -159,6 +243,36 @@ class CLITest(unittest.TestCase):
         data = {"items": [{"id": str(i), "label": "pass"} for i in range(49)]}
         a, b = self.write("human.json", data), self.write("judge.json", data)
         self.assertEqual(self.cli("judge_agreement.py", "--human", a, "--judge", b).returncode, 2)
+
+    def test_judge_rejects_low_id_coverage(self):
+        human = {"items": [{"id": str(i), "label": "pass" if i % 2 else "fail"} for i in range(1000)]}
+        judge = {"items": [{"id": str(i), "label": "pass" if i % 2 else "fail"} for i in range(50)]}
+        a, b = self.write("human.json", human), self.write("judge.json", judge)
+        result = self.cli("judge_agreement.py", "--human", a, "--judge", b)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("coverage", result.stderr)
+
+    def test_judge_rejects_constant_labels(self):
+        data = {"items": [{"id": str(i), "label": "pass"} for i in range(50)]}
+        a, b = self.write("human.json", data), self.write("judge.json", data)
+        result = self.cli("judge_agreement.py", "--human", a, "--judge", b)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("only one label", result.stderr)
+
+    def test_judge_rejects_null_label(self):
+        data = {"items": [{"id": str(i), "label": "pass" if i % 2 else "fail"} for i in range(50)]}
+        data["items"][0]["label"] = None
+        a, b = self.write("human.json", data), self.write("judge.json", data)
+        result = self.cli("judge_agreement.py", "--human", a, "--judge", b)
+        self.assertEqual(result.returncode, 2)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_judge_accepts_bom_csv(self):
+        rows = "id,label\n" + "".join(f"{i},{'pass' if i % 2 else 'fail'}\n" for i in range(50))
+        a, b = self.dir / "human.csv", self.dir / "judge.csv"
+        a.write_text(rows, encoding="utf-8-sig")
+        b.write_text(rows, encoding="utf-8-sig")
+        self.assertEqual(self.cli("judge_agreement.py", "--human", a, "--judge", b).returncode, 0)
 
     def test_judge_rejects_duplicate_ids(self):
         dup = {"items": [{"id": "x", "label": "pass"}, {"id": "x", "label": "fail"}]}

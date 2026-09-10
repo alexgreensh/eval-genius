@@ -1,102 +1,125 @@
 #!/usr/bin/env python3
-"""Paired bootstrap interval on the per-item delta between two runs.
+"""Paired bootstrap interval on per-item deltas from two harness-agnostic result files.
 
-Input: two per-item files (JSON {"items":[...]} or JSONL, one record per line), each
-record with "id" and a numeric "score" (0/1 for pass/fail works). Items are matched
-on id; unmatched ids are an error, because an unpaired comparison is a different,
-weaker test.
-
-Optional "cluster" field on records: when present, resampling is done over clusters
-(documents, repos, conversations), which is the honest interval when items share a
-parent. Naive item-level intervals on clustered data have been measured at a third
-of the true width.
-
-Usage:
-  paired_bootstrap.py --a baseline.json --b treatment.json [--reps 5000] [--seed 0]
-Prints mean delta (b - a), 95% interval, and improved/regressed/held counts.
-Exit 0 on valid input (the decision rule lives in the pre-registration); exit 1 on bad or unpaired input.
+Input: JSON {"items":[...]}, a JSON array, or JSONL. Records need a unique, non-empty
+string ``id`` and a finite numeric ``score``. Optional ``cluster`` values must be JSON
+scalars and must match between arms. Exit 0 on valid input and 1 on invalid input.
 """
-import argparse, json, random, statistics, sys
+import argparse
+import json
+import math
+import random
+import statistics
+import sys
+
+MAX_REPS = 100_000
+
+
+def fail(message):
+    print(f"error: {message}", file=sys.stderr)
+    sys.exit(1)
 
 
 def parse_records(text):
-    """Accept {"items":[...]}, a bare JSON array, or JSONL (one object per line)."""
     try:
         data = json.loads(text)
-        return data["items"] if isinstance(data, dict) else data
+        if isinstance(data, dict):
+            if "items" not in data:
+                raise TypeError("JSON object needs an 'items' array")
+            return data["items"]
+        return data
     except json.JSONDecodeError:
-        return [json.loads(l) for l in text.splitlines() if l.strip()]
+        return [json.loads(line) for line in text.splitlines() if line.strip()]
+
+
+def scalar(value):
+    return isinstance(value, (str, int, float)) and not isinstance(value, bool) and (not isinstance(value, float) or math.isfinite(value))
 
 
 def load(path):
     try:
-        text = open(path).read()
+        with open(path, encoding="utf-8") as handle:
+            text = handle.read().strip()
     except FileNotFoundError:
-        sys.exit(f"error: file not found: {path}")
-    text = text.strip()
+        fail(f"file not found: {path}")
+    except (OSError, UnicodeError) as exc:
+        fail(f"cannot read {path} as UTF-8 ({exc})")
     try:
         items = parse_records(text)
-    except (json.JSONDecodeError, KeyError, TypeError) as e:
-        sys.exit(f"error: {path} is not a per-item JSON/JSONL file ({e}). Need records with 'id' and numeric 'score'.")
-    out = {}
-    for it in items:
-        if "id" not in it or not isinstance(it.get("score"), (int, float)) or isinstance(it.get("score"), bool):
-            sys.exit(f"error: record {it!r} in {path} needs 'id' and a numeric 'score'.")
-        item_id = str(it["id"])
-        if item_id in out:
-            sys.exit(f"error: {path} contains duplicate item id {item_id!r}.")
-        out[item_id] = it
-    return out
+    except (json.JSONDecodeError, KeyError, TypeError) as exc:
+        fail(f"{path} is not a per-item JSON/JSONL file ({exc}). Need records with 'id' and finite numeric 'score'.")
+    if not isinstance(items, list):
+        fail(f"{path} items must be an array.")
+    result = {}
+    for item in items:
+        if not isinstance(item, dict):
+            fail(f"record {item!r} in {path} must be an object.")
+        item_id, score = item.get("id"), item.get("score")
+        if not isinstance(item_id, str) or not item_id:
+            fail(f"record {item!r} in {path} needs a non-empty string 'id'.")
+        if not isinstance(score, (int, float)) or isinstance(score, bool) or not math.isfinite(score):
+            fail(f"record {item!r} in {path} needs a finite numeric 'score'.")
+        cluster = item.get("cluster", item_id)
+        if not scalar(cluster):
+            fail(f"record {item!r} in {path} needs a scalar string or number 'cluster'.")
+        if item_id in result:
+            fail(f"{path} contains duplicate item id {item_id!r}.")
+        result[item_id] = item
+    return result
 
 
 def main():
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--a", required=True, help="baseline per-item file")
-    ap.add_argument("--b", required=True, help="treatment per-item file")
-    ap.add_argument("--reps", type=int, default=5000)
-    ap.add_argument("--seed", type=int, default=0)
-    args = ap.parse_args()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--a", required=True, help="baseline per-item file")
+    parser.add_argument("--b", required=True, help="treatment per-item file")
+    parser.add_argument("--reps", type=int, default=5000)
+    parser.add_argument("--seed", type=int, default=0)
+    args = parser.parse_args()
+    if not 1 <= args.reps <= MAX_REPS:
+        fail(f"--reps must be between 1 and {MAX_REPS}.")
 
-    if args.reps < 1:
-        sys.exit("error: --reps must be at least 1.")
-
-    A, B = load(args.a), load(args.b)
-    if set(A) != set(B):
-        sys.exit(f"error: item ids differ ({len(set(A)-set(B))} only in a, {len(set(B)-set(A))} only in b). Paired analysis needs identical item sets.")
-    ids = sorted(A)
+    a_items, b_items = load(args.a), load(args.b)
+    if set(a_items) != set(b_items):
+        fail(f"item ids differ ({len(set(a_items)-set(b_items))} only in a, {len(set(b_items)-set(a_items))} only in b). Paired analysis needs identical item sets.")
+    ids = sorted(a_items)
     if len(ids) < 2:
-        sys.exit("error: need at least 2 paired items.")
+        fail("need at least 2 paired items.")
+    mismatches = [item_id for item_id in ids
+                  if a_items[item_id].get("cluster", item_id) != b_items[item_id].get("cluster", item_id)]
+    if mismatches:
+        fail("cluster assignments differ between arms for ids: " + ", ".join(mismatches[:20]))
 
-    cluster_mismatches = [i for i in ids if A[i].get("cluster", i) != B[i].get("cluster", i)]
-    if cluster_mismatches:
-        sys.exit("error: cluster assignments differ between arms for ids: " + ", ".join(cluster_mismatches[:20]))
-
-    deltas = {i: B[i]["score"] - A[i]["score"] for i in ids}
+    deltas = {}
+    for item_id in ids:
+        delta = b_items[item_id]["score"] - a_items[item_id]["score"]
+        if not math.isfinite(delta):
+            fail(f"score delta for item {item_id!r} is not finite (values overflow or are too large).")
+        deltas[item_id] = delta
     clusters = {}
-    for i in ids:
-        clusters.setdefault(A[i].get("cluster", i), []).append(deltas[i])
+    for item_id in ids:
+        clusters.setdefault(a_items[item_id].get("cluster", item_id), []).append(deltas[item_id])
     units = list(clusters.values())
     unit_name = "clusters" if len(units) < len(ids) else "items"
-
     rng = random.Random(args.seed)
     means = []
     for _ in range(args.reps):
-        sample = [rng.choice(units) for _ in units]
-        flat = [d for u in sample for d in u]
-        means.append(sum(flat) / len(flat))
+        flat = [delta for _unit in units for delta in rng.choice(units)]
+        sample_mean = sum(flat) / len(flat)
+        if not math.isfinite(sample_mean):
+            fail("bootstrap sample overflowed; scores are too large.")
+        means.append(sample_mean)
     means.sort()
-    lo, hi = means[int(0.025 * args.reps)], means[int(0.975 * args.reps) - 1]
+    low = means[int(0.025 * args.reps)]
+    high = means[max(0, int(0.975 * args.reps) - 1)]
     mean = statistics.fmean(deltas.values())
-    imp = sum(1 for d in deltas.values() if d > 0)
-    reg = sum(1 for d in deltas.values() if d < 0)
-
+    if not math.isfinite(mean):
+        fail("mean delta overflowed; scores are too large.")
+    improved = sum(delta > 0 for delta in deltas.values())
+    regressed = sum(delta < 0 for delta in deltas.values())
     print(f"n {len(ids)} items, resampled over {len(units)} {unit_name}, {args.reps} reps, seed {args.seed}")
-    print(f"mean delta (b - a) {mean:+.4f}   95% interval [{lo:+.4f}, {hi:+.4f}]")
-    print(f"improved {imp}  regressed {reg}  held {len(ids)-imp-reg}")
-    if lo <= 0 <= hi:
-        print("interval includes zero: not distinguishable from noise on this fixture")
-    else:
-        print("interval excludes zero on this fixture (still subject to fixture validity and label error)")
+    print(f"mean delta (b - a) {mean:+.4f}   95% interval [{low:+.4f}, {high:+.4f}]")
+    print(f"improved {improved}  regressed {regressed}  held {len(ids)-improved-regressed}")
+    print("interval includes zero: not distinguishable from noise on this fixture" if low <= 0 <= high else "interval excludes zero on this fixture (still subject to fixture validity and label error)")
 
 
 if __name__ == "__main__":

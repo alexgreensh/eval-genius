@@ -3,13 +3,18 @@ name: Tests
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -25,7 +30,7 @@ jobs:
           set +e
           python skill/scripts/check_gate.py --baseline tests/fixtures/pass-baseline.json --treatment tests/fixtures/pass-treatment.json
           pass_code=$?
-          python skill/scripts/check_gate.py --baseline tests/fixtures/pass-baseline.json --treatment tests/fixtures/fail-treatment.json
+          fail_output=$(python skill/scripts/check_gate.py --baseline tests/fixtures/pass-baseline.json --treatment tests/fixtures/fail-treatment.json 2>&1)
           fail_code=$?
           python skill/scripts/check_gate.py --baseline tests/fixtures/pass-baseline.json --treatment tests/fixtures/cannot-measure-treatment.json
           cannot_code=$?
@@ -33,3 +38,5 @@ jobs:
           test "$pass_code" -eq 0
           test "$fail_code" -eq 1
           test "$cannot_code" -eq 2
+          test -n "$fail_output"
+          ! printf '%s' "$fail_output" | grep -q 'Traceback'
