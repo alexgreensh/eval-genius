@@ -82,7 +82,7 @@ Eval Genius 就是那个缺失的判断力，被打包成你的 AI agent *和你
 | `check_gate.py` | 逐条把变更与基线对比；以 **0 PASS**、**1 FAIL**、**2 CANNOT-MEASURE** 退出，让崩溃永远无法伪装成通过 |
 | `paired_bootstrap.py` | 给差异加上置信区间，让"它变好了"真正有意义 |
 | `judge_agreement.py` | 在你让 LLM judge 打分之前，先测量它和人工标注的一致程度 |
-| `hash_fixture.py` | 打印 gate 要求的规范 `fixture_hash`，让同一 fixture 上的两次运行能够真正比较，而不是悄悄不匹配 |
+| `hash_fixture.py` | 给你的测试集打上指纹，这样在你相信比较结果之前，就知道两次运行测的是同一个东西 |
 
 ## 安装
 

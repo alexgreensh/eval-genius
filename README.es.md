@@ -82,7 +82,7 @@ Cuatro scripts de librería estándar se incluyen con la skill y se ejecutan de 
 | `check_gate.py` | Compara un cambio contra su baseline por ítem; sale con **0 PASS**, **1 FAIL**, **2 CANNOT-MEASURE**, así un crash nunca puede hacerse pasar por un pass |
 | `paired_bootstrap.py` | Pone un intervalo de confianza en la diferencia, así "mejoró" realmente significa algo |
 | `judge_agreement.py` | Mide cuánto tu juez LLM coincide con etiquetas humanas, antes de dejarlo calificar nada |
-| `hash_fixture.py` | Imprime el `fixture_hash` canónico que exige el gate, para que dos ejecuciones sobre el mismo fixture se comparen en vez de discrepar en silencio |
+| `hash_fixture.py` | Le pone una huella a tu conjunto de pruebas, para saber que dos ejecuciones miden lo mismo antes de fiarte de la comparación |
 
 ## Instalación
 
