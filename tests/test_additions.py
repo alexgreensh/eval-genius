@@ -88,12 +88,15 @@ class HashFixtureTest(Base):
 
 class JudgeHashConsistencyTest(Base):
     @staticmethod
-    def gate(judge=None):
+    def gate(judge=None, layer=None):
         manifest = {"fixture_hash": "fx", "liveness": "passed", "negative_control_id": "bad"}
         if judge is not None:
             manifest["judge"] = judge
+        item = {"id": "ok", "verdict": "pass"}
+        if layer is not None:
+            item["layer"] = layer
         return {"manifest": manifest,
-                "items": [{"id": "bad", "verdict": "fail"}, {"id": "ok", "verdict": "pass"}]}
+                "items": [{"id": "bad", "verdict": "fail", "layer": "deterministic"}, item]}
 
     def run_gate(self, base_judge, treat_judge):
         a = self.write("a.json", self.gate(base_judge))
@@ -126,6 +129,38 @@ class JudgeHashConsistencyTest(Base):
         out = self.run_gate({"model_snapshot": "judge-v1"}, None)
         self.assertEqual(out.returncode, 2)
         self.assertIn("judge model_snapshot differs or is missing on one arm", out.stderr)
+
+    def test_judged_items_require_both_fingerprints(self):
+        for judge in (None, {}, {"prompt_hash": "prompt-only"},
+                      {"model_snapshot": "model-only"},
+                      {"prompt_hash": "   ", "model_snapshot": "judge-v1"}):
+            with self.subTest(judge=judge):
+                a = self.write("a.json", self.gate(judge, layer="judged"))
+                b = self.write("b.json", self.gate(judge, layer="judged"))
+                out = self.cli("check_gate.py", "--baseline", a, "--treatment", b)
+                self.assertEqual(out.returncode, 2)
+                self.assertIn("judged items require a non-empty judge", out.stderr)
+
+    def test_judged_items_pass_with_pinned_fingerprints(self):
+        judge = {"prompt_hash": "sha256:prompt", "model_snapshot": "judge-v1"}
+        a = self.write("a.json", self.gate(judge, layer="judged"))
+        b = self.write("b.json", self.gate(judge, layer="judged"))
+        out = self.cli("check_gate.py", "--baseline", a, "--treatment", b)
+        self.assertEqual(out.returncode, 0, out.stderr)
+
+    def test_deterministic_items_do_not_require_judge_fingerprints(self):
+        a = self.write("a.json", self.gate(None, layer="deterministic"))
+        b = self.write("b.json", self.gate(None, layer="deterministic"))
+        out = self.cli("check_gate.py", "--baseline", a, "--treatment", b)
+        self.assertEqual(out.returncode, 0, out.stderr)
+
+    def test_judged_items_outside_selected_layer_do_not_require_fingerprints(self):
+        data = self.gate(None, layer="judged")
+        data["items"].append({"id": "det", "verdict": "pass", "layer": "deterministic"})
+        a = self.write("a.json", data)
+        b = self.write("b.json", data)
+        out = self.cli("check_gate.py", "--baseline", a, "--treatment", b, "--layer", "deterministic")
+        self.assertEqual(out.returncode, 0, out.stderr)
 
     def test_malformed_judge_metadata_is_cannot_measure(self):
         out = self.run_gate(["not", "an", "object"], None)

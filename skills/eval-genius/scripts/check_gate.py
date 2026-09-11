@@ -31,6 +31,8 @@ silent PASS, so an archived pair can flip from scored to refused):
   - negative_control_id must match between the two manifests (a one-sided control
     is no longer honored).
   - duplicate item ids are refused; ids must be unique within each run.
+  - any selected judged item requires non-empty prompt and model fingerprints in both
+    manifests; deterministic-only comparisons do not require judge metadata.
 """
 import argparse
 import json
@@ -129,8 +131,15 @@ def main():
             die(f"{role} judge metadata must be an object or null.")
     base_judge = base_judge or {}
     treat_judge = treat_judge or {}
+    judged_items_selected = args.layer in (None, "judged") and any(
+        item.get("layer") == "judged" for item in base["items"] + treat["items"]
+    )
     for field in ("prompt_hash", "model_snapshot"):
         b_val, t_val = base_judge.get(field), treat_judge.get(field)
+        if judged_items_selected:
+            if not isinstance(b_val, str) or not b_val.strip() or not isinstance(t_val, str) or not t_val.strip():
+                die(f"judged items require a non-empty judge {field} in both manifests: "
+                    f"baseline={b_val!r} treatment={t_val!r}. Pin the judge before comparing the judged layer.")
         if b_val != t_val:
             die(f"judge {field} differs or is missing on one arm: baseline={b_val!r} treatment={t_val!r}. "
                 "Re-grade both arms with one pinned judge before comparing the judged layer.")
