@@ -1,6 +1,6 @@
 {
   "name": "eval-genius",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Decide, design, gate, judge, and defend evaluations for LLM, agent, and retrieval systems. Not ordinary unit tests.",
   "author": {
     "name": "Alex Greenshpun",
