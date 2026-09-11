@@ -117,9 +117,38 @@ class JudgeHashConsistencyTest(Base):
     def test_absent_judge_block_is_skipped(self):
         self.assertEqual(self.run_gate(None, None).returncode, 0)
 
-    def test_one_sided_judge_field_is_skipped(self):
-        # present on one arm only, null on the other -> no comparison, no refusal
-        self.assertEqual(self.run_gate({"prompt_hash": "h1"}, {"prompt_hash": None}).returncode, 0)
+    def test_one_sided_judge_field_is_cannot_measure(self):
+        out = self.run_gate({"prompt_hash": "h1"}, {"prompt_hash": None})
+        self.assertEqual(out.returncode, 2)
+        self.assertIn("judge prompt_hash differs or is missing on one arm", out.stderr)
+
+    def test_one_sided_judge_block_is_cannot_measure(self):
+        out = self.run_gate({"model_snapshot": "judge-v1"}, None)
+        self.assertEqual(out.returncode, 2)
+        self.assertIn("judge model_snapshot differs or is missing on one arm", out.stderr)
+
+    def test_malformed_judge_metadata_is_cannot_measure(self):
+        out = self.run_gate(["not", "an", "object"], None)
+        self.assertEqual(out.returncode, 2)
+        self.assertIn("judge metadata must be an object or null", out.stderr)
+
+
+class RunManifestTemplateTest(Base):
+    def test_shipped_template_matches_gate_contract(self):
+        template = json.loads((ROOT / "skills" / "eval-genius" / "templates" / "run-manifest.json").read_text(encoding="utf-8"))
+        self.assertIn("manifest", template)
+        self.assertIn("items", template)
+        for field in ("fixture_hash", "liveness", "negative_control_id"):
+            self.assertIn(field, template["manifest"])
+        template["manifest"]["fixture_hash"] = "sha256:test-fixture"
+        template["manifest"]["liveness"] = "passed"
+        template["manifest"]["negative_control_id"] = "known-bad-item-id"
+        template["manifest"]["judge"] = {"model_snapshot": None, "prompt_hash": None}
+        template["items"].append({"id": "case-1", "verdict": "pass", "score": 1.0, "layer": "deterministic", "error": None})
+        baseline = self.write("template-baseline.json", template)
+        treatment = self.write("template-treatment.json", template)
+        out = self.cli("check_gate.py", "--baseline", baseline, "--treatment", treatment)
+        self.assertEqual(out.returncode, 0, out.stderr)
 
 
 if __name__ == "__main__":
