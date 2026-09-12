@@ -16,11 +16,11 @@
 </p>
 
 <p align="center">
-  <a href="#install" title="Claude Code"><img src="assets/logos/claude.svg" height="46" alt="Claude Code"></a>
-  &nbsp;&nbsp;
-  <a href="#install" title="OpenAI Codex"><img src="assets/logos/codex.svg" height="46" alt="OpenAI Codex"></a>
-  &nbsp;&nbsp;
-  <a href="#install" title="Factory Droid"><img src="assets/logos/droid.svg" height="46" alt="Factory Droid"></a>
+  <a href="#install" title="Claude Code"><img src="assets/logos/claude.svg" height="28" alt="Claude Code"></a>
+  &nbsp;
+  <a href="#install" title="OpenAI Codex"><img src="assets/logos/codex.svg" height="28" alt="OpenAI Codex"></a>
+  &nbsp;
+  <a href="#install" title="Factory Droid"><img src="assets/logos/droid.svg" height="28" alt="Factory Droid"></a>
 </p>
 <p align="center">
   <sub>Runs natively in <strong>Claude Code</strong>, <strong>Codex</strong>, and <strong>Droid</strong> — or any agent that loads a <code>SKILL.md</code>.</sub>
