@@ -79,6 +79,28 @@ Three sentences, each tagged **measured** (from a run with a manifest), **estima
 Everything the report template asks for (`templates/eval-report.md`) is an expansion
 of those three. A write-up with no third sentence reads as one where nobody looked.
 
+## Reading transcripts on a schedule
+
+Reproducing one flipped item by hand (section 4) settles a specific diff. Reading
+transcripts is also a standing practice: **N transcripts per run, always**, on
+every gate run and every nightly run, sampled across items and strata rather than
+only the failures. N is small (a handful catches a drift), written down, and never
+zero. A metric can stay green for months while the transcripts under it change
+genre, and nobody notices until a user does.
+
+The transcript is the arbiter of "agent error vs grader error." A failed item can
+mean the system did the wrong thing, or that the check asked for the wrong thing;
+the aggregate cannot separate those, and only a read can. Sort each finding into
+fix-the-system or fix-the-spec, and feed anything new into `12-error-analysis.md`
+as a candidate error class.
+
+One boundary, stated plainly: this reading is **audit and debugging, not grading**.
+`10-agentic-evals.md` keeps the transcript out of the outcome verdict so nobody
+awards credit for effort, and nothing here overrides that. The grader decides the
+verdict; the human reads transcripts to check that the grader is still asking the
+right question, and to catch the pass that hides a bad process or the fail that
+hides a spec bug.
+
 ## Worked example (hypothetical numbers)
 
 Baseline 31 of 40 pass, treatment 34 of 40. Per item: 4 improved, 1 regressed, 35
@@ -94,4 +116,5 @@ held. Bar was "no regressions and pass rate up by at least 5 points". Reading:
 
 A three-way outcome read before any score; the result placed against the written bar;
 a delta with an interval and a stated noise floor; regressions inspected by hand;
-layers and cost read separately; and three tagged sentences a hostile reader can check.
+layers and cost read separately; a standing transcript read on every run, feeding
+error analysis; and three tagged sentences a hostile reader can check.

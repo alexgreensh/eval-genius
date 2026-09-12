@@ -184,6 +184,19 @@ Report in a fixed shape so a reader can audit it:
 
 ---
 
+## Part 9 — The layer above the runners
+
+Everything so far is the decision layer: whether to measure, what to measure, where the bar goes, what the number entitles you to claim. Below it sits the execution layer, whatever actually runs your items. That might be the plugin eval runner in your coding agent, a config-driven runner like promptfoo, a pytest-style library like DeepEval, an observability platform like LangSmith, Langfuse, Braintrust, or Phoenix, or an agent harness like Inspect AI. Pick whichever fits the stack. The methodology does not care, and that is the point.
+
+**Invest in the evals, not the framework.** The durable artifacts are the fixture, the written bar, the labeled slices, the manifest. None of them belong to a runner, and runners churn: BIG-bench's repository is archived, LangChain's auto-evaluator is archived, UpTrain's has been quiet since 2024. What survives a harness swap is exactly what this document teaches: three-way outcomes, frozen and fingerprinted fixtures, intervals on every delta, a negative control in the gate. Adopt a runner for its plumbing; keep the parts that make the number defensible in your repo, in your format, portable.
+
+Two practical consequences:
+
+- **Keep the runner replaceable.** Store fixtures and per-item results in a shape you own. If the test set cannot move to a different harness, the harness owns your eval, not you.
+- **Spend the calibration budget on the judge and the fixture, not on framework features.** A calibrated judge on a well-built fixture survives three runner migrations; a polished dashboard on a bad fixture survives none.
+
+---
+
 ## The one-page checklist
 
 **Before:**

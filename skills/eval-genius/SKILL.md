@@ -18,10 +18,9 @@ Assume the user may be starting from zero; plain language first, jargon when it 
 
 ## Step 0: Does this need an eval, and where does it go?
 
-Three questions decide it (`references/00-start-here.md`): does the output vary (model,
-prompt, retriever)? will it change again, and would a quiet regression cost something?
-is a decision or a public claim coming? No to all: a hand spot check, stop. Yes to any:
-an eval, sized to the stage the project is in.
+Three questions decide it (`references/00-start-here.md`): does the output vary? will it
+change again, and would a quiet regression cost something? is a decision or public claim
+coming? No to all: a spot check, stop. Yes to any: an eval, sized to the project's stage.
 
 | Stage the user is at | Instrument | Smallest useful version |
 |---|---|---|
@@ -42,6 +41,7 @@ Identify the job, then load only that reference. Every job still passes through 
 | User needs to... | Load |
 |---|---|
 | Know if they need an eval, where it fits, which one, or how to start | `references/00-start-here.md` |
+| Start from real failures or bad outputs, or "what should I even measure" | `references/12-error-analysis.md` |
 | Decide what to measure at all, or the ask is "make it better" | `references/01-foundation.md` |
 | Pick a grader or metric for a task | `references/02-grading-and-metrics.md` |
 | Use, prompt, or trust an LLM judge | `references/03-judge-calibration.md` |
@@ -53,16 +53,16 @@ Identify the job, then load only that reference. Every job still passes through 
 | Write results up, or retire a benchmark | `references/09-reporting.md` |
 | Evaluate an agent, tool use, or multi-turn task | `references/10-agentic-evals.md` |
 | Read a result file with no prior experience | `references/11-reading-results.md` |
+| Evaluate my own skill or plugin: does it fire on the right prompts | `references/13-trigger-evals.md` |
+| Follow a full worked example, start to finish | `references/walkthroughs/` |
 
-Templates in `templates/` get copied into the project, never edited in place. Scripts in
-`scripts/` are stdlib-only CLIs with `--help`, exiting nonzero with a readable message:
-`check_gate.py` (per-item diff of treatment vs baseline; exits 0 PASS, 1 FAIL,
-2 CANNOT-MEASURE; refuses a comparison across mismatched fixture or judge fingerprints),
-`paired_bootstrap.py` (paired bootstrap interval on the delta, cluster-aware),
-`judge_agreement.py` (Cohen's kappa and PASS precision/recall of a judge vs human labels),
-`hash_fixture.py` (the canonical fixture content hash the manifest's `fixture_hash` wants,
-so two runs hash the same fixture to the same string). Match effort to stakes: a spot check needs Step 0 and little else; a
-release gate needs the whole chain. Load references on demand, not all at once.
+Templates in `templates/` are copied into the project, never edited in place. Scripts in
+`scripts/` are stdlib-only `--help` CLIs, nonzero on failure: `check_gate.py` (per-item
+treatment-vs-baseline diff, exits 0/1/2 = PASS/FAIL/CANNOT-MEASURE, refuses mismatched
+fingerprints), `paired_bootstrap.py` (paired bootstrap delta interval, cluster-aware),
+`judge_agreement.py` (kappa + PASS precision/recall vs humans), `rate_interval.py` (Wilson
+interval for a single rate), `hash_fixture.py` (canonical fixture hash). Match effort to
+stakes; load references on demand, not all at once.
 
 ---
 
@@ -77,8 +77,7 @@ data or code. A first-timer fills promise, lever, baseline, and bar; the rest fo
 3. **Placement.** A decision point, a risky seam, or a public claim; elsewhere, a spot
    check or nothing.
 4. **Weight.** Spot check, eval, benchmark, or monitor (Step 0 table).
-5. **Bar.** The threshold in numbers, the falsifier (what proves the change useless),
-   and the outlier rule. Written before any run.
+5. **Bar.** Threshold, falsifier, outlier rule. Written before any run.
 
 Done when all five fields are filled and a baseline is named.
 
@@ -127,17 +126,16 @@ Full walk in `references/11-reading-results.md`; each check gates the next.
 
 ## Step 6: Report honestly
 Numbers are claims with tiers, measured / estimated / aspirational, never summed across
-tiers. Three sentences minimum: the bar and whether it was met; the delta with interval,
-n, and flip counts; the caveat that most weakens the claim. Say when a benchmark is
-self-run. Retire what fails its bar, in writing. Template: `templates/eval-report.md`.
+tiers. Three sentences minimum: the bar and whether it was met; the delta with interval
+and flip counts; the caveat that most weakens the claim. Say when a benchmark is self-run.
+Retire what fails its bar, in writing. Template: `templates/eval-report.md`.
 
 ---
 
 ## Anti-patterns (named so they can be refused)
 
 - **Metric-first.** A dataset and scale chosen before the promise is written.
-- **Eval too early or too late.** Measuring a prototype still in flux, or a shipped
-  system with twenty unattributed changes behind it.
+- **Eval too early or too late.** A prototype still in flux, or a shipped system with unattributed changes.
 - **Blended score.** One number hiding which layer moved.
 - **Post-hoc bar.** Threshold decided after the result is known.
 - **Fixture drift.** Comparing across corpora, caches, or snapshots.
@@ -147,4 +145,5 @@ self-run. Retire what fails its bar, in writing. Template: `templates/eval-repor
 - **Rubric-author bias.** Whoever built the system also wrote the rubric, alone.
 - **Run until green.** Repeating a noisy eval until one run passes.
 - **Gate-set tuning / overfitting.** Iterating on the held-out items the gate uses.
+- **Grader gaming.** The system passing by loophole or leaked test; that pass is a task-spec bug.
 - Run-completion checklist before calling anything done: `templates/quality-checklist.md`.

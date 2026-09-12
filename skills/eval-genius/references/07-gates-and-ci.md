@@ -41,6 +41,36 @@ A gate rule with no per-item diff is a gate that can be fooled by offsetting cha
   because the old numbers are no longer comparable. Say so in the commit.
 - **Never edit** a baseline by hand.
 
+## Suite lifecycle: capability, regression, graduation
+
+Two kinds of suite sit behind the same gate, at opposite ends of the pass-rate
+axis:
+
+- A **capability suite** starts low and climbs. It measures a hill the system is
+  still climbing; eval-driven development is a bet on where the system is going,
+  and a low starting number is the shape of the bet, not a defect in the suite.
+- A **regression suite** sits near 100%. It guards what already works, and every
+  flip is a regression to explain, not a hill to climb.
+
+Items move between them in one direction. A capability item that saturates (passes
+on every run, across real changes, until nobody expects it to fail again)
+**graduates** into the regression suite: its job flips from "show progress" to
+"say no." A capability suite reading 100% across the board is finished or stale;
+a regression suite sitting at 80% is either failing or misfiled.
+
+A saturated error-detector is a different animal. An eval built to count one
+failure class that now reads 100% is measuring nothing: the error left the data
+(`12-error-analysis.md`). That is a signal to retire or refresh it, in writing
+(`09-reporting.md`), and spend the attention on a live error class.
+
+"Saturation" names three different events in this skill; keep them apart:
+
+| Where | What saturated | Response |
+|---|---|---|
+| `04-search-vs-build.md` | A public benchmark under consideration | Adopt it as a floor check, not a headline |
+| `09-reporting.md` | A benchmark you run, ceiling reached or promise expired | Retire it, in writing |
+| This file | One item inside a capability suite | Graduate it into the regression suite |
+
 ## Flake policy
 
 A flaky gate is a broken gate. Retries hide regressions and train people to ignore red.
@@ -83,6 +113,46 @@ Quality gates that ignore cost let a change ship that doubles the bill. Add:
 
 Both are per-item records already, so they ride the same diff.
 
+## Partial results and cost ceilings
+
+A suite that stops mid-run has not run. A cost ceiling hit at item 600 of 900, or
+a rate-limit that kills the trial early, yields a **partial** result, and a
+partial result is CANNOT-MEASURE: the outcome is "the instrument stopped", not a
+score on the system. Two consequences:
+
+- **Partial results never enter trend charts.** A pass rate computed on the first
+  600 items was measured on a different fixture; plotting it beside complete runs
+  manufactures a movement nobody caused.
+- **A run that silently returns partial looks like a verdict.** If the missing
+  items read as failures it looks like a regression; if the aborted tail is
+  dropped it can even read green. Both are the green-by-crash family below: the
+  pipeline got a number and believed it. The same-item-ids and error-budget
+  checks exist to refuse exactly this comparison.
+
+Treat the cost ceiling as a pre-registered budget, not an afterthought. It is
+written in the pre-registration with the other bars ("abort the run past $X"),
+recorded in the manifest when it trips, and reported as a stopped run. A ceiling
+discovered by the invoice was never a budget.
+
+## A third placement: inline guardrails
+
+A gate runs before the merge; a monitor watches live traffic after the fact. A
+third placement runs **inline, before the response reaches the user**: the check
+sits inside the request path and can stop or fix the output, not just record it.
+It is the same instrument discipline under a different cost and latency profile:
+
+- **It must be fast.** Its latency is the user's latency. The budget is
+  milliseconds or one cheap call; a judged layer or a full suite does not fit.
+- **It must have a remediation path.** Recording the failure is a monitor's job.
+  Inline, a failure triggers a retry of the generation or routes the output to a
+  fixer call. A guardrail that can only say no either blocks good answers or gets
+  bypassed.
+
+Checks that cannot meet the latency budget or carry no remediation stay in the
+gate or the monitor. The guardrail itself is measured like any eval: its
+false-block rate is a cost line, and a guardrail that fires on good output is a
+regression source like any other.
+
 ## Anti-patterns specific to gates
 
 - **Green by crash.** Runner exits 0 after a setup failure; CI reads green.
@@ -94,8 +164,9 @@ Both are per-item records already, so they ride the same diff.
 ## Output of this file
 
 A gate definition: tier, fixture hash, comparison rule, tolerance, baseline location
-and promotion rule, flake policy, negative control, cost/latency limits, and the exit
-code contract CI honors.
+and promotion rule, the capability-to-regression graduation path, flake policy,
+negative control, cost/latency limits with a pre-registered ceiling, refusal of
+partial runs, and the exit code contract CI honors.
 
 ## CI shell contract
 

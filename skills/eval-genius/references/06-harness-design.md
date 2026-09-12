@@ -98,6 +98,19 @@ intended one, the feature's own instrumentation reports on. On failure the run e
 CANNOT-MEASURE. Silent misconfiguration produces a confident, fake comparison, and it
 is common enough to deserve a dedicated check rather than a hope.
 
+## Ablation: the without-component control
+
+Liveness proves the arm under test is on. Ablation asks the next question: what does the
+component actually contribute? Run the same fixture with the component **removed**, not
+just changed, and the delta is its contribution. The component can be a retrieval step, a
+tool, a re-ranker, a system-prompt block, or an entire skill or plugin. This is the right
+design whenever "does adding X help" is the question, and it is the only honest way to
+claim a component earns its cost: a with-arm that scores 0.9 means nothing if the
+without-arm also scores 0.9. Report both arms and the delta between them, never the
+with-arm alone. Grading checks that can only pass when the component is present (for a
+skill, "the skill was invoked") are scored in the with-arm only, or they would drag the
+without-arm to zero and inflate the delta.
+
 ## The cache trap
 
 Benchmarks are usually run against pre-built caches, indexes, or snapshots because
@@ -105,6 +118,23 @@ building them is slow. That means the write path is never exercised: a change th
 corrupts what gets written (a zeroed vector, a dropped field) passes every cached
 benchmark. Any gate protecting a system with a write path includes at least one
 fresh-build run from raw inputs, on a schedule appropriate to its cost.
+
+## Mocking external dependencies
+
+A system that calls out to tools, APIs, or MCP servers cannot be measured reproducibly
+against the live world: the dependency changes under you, and a red run cannot tell a
+system regression from a flaky upstream. Freeze the dependency the way you freeze the
+fixture:
+
+- **Stub each external call with a contract-checked fake.** The stub returns a recorded
+  answer, and it also asserts what the system *asked* for. A stub that aborts the run when
+  the input violates the contract (wrong argument shape, a field the system should never
+  send) is itself a grader of how the system used the tool, not just a stand-in for it.
+- **Record once, replay in CI.** Capture real responses in a recording run, commit them,
+  and replay them so every later run is deterministic. The recording is part of the
+  fixture and gets a hash like any other item.
+- **Reserve live calls for a separate, scheduled run** that expects upstream noise, never
+  the gate. A gate that hits the real network is measuring the network too.
 
 ## Reproducibility
 

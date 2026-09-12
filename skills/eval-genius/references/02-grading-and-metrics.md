@@ -34,6 +34,32 @@ Before accepting "this needs a judge," try these moves in order:
 
 Only what survives all five becomes the judged layer.
 
+## The judge cascade: filter with code, judge only the suspects
+
+Deterministic-first is a selection rule; the cascade is a runtime architecture that keeps
+judge spend near zero at volume. Run the cheap code check on **every** item, and send only
+the items that trip it to the judge. A tree-shape example: count children per node in code,
+and pass only the over-full nodes to a judge for the semantic "should these be grouped"
+call. The judge never sees the items code already cleared, so cost scales with the failure
+rate, not the item count. It needs no special harness: the scorer routes, the judge grades
+the residue. This is how a harness-agnostic eval stays affordable on a large fixture.
+
+## Partial credit vs binary verdicts
+
+A multi-part task can be partly right in a way a single pass/fail throws away: an agent
+that identifies the problem and verifies the customer but botches the refund is meaningfully
+better than one that fails at the first step. Two rules, used in different places:
+
+- **For measuring capability**, award partial credit: decompose the task into components,
+  score the fraction done, and carry that per-item fraction in the record's `score` field
+  (which `paired_bootstrap.py` already reads). This is how you see a system getting better
+  before it gets all the way there.
+- **For a gate**, stay binary. `check_gate.py` verdicts are `pass`/`fail`/`error` by design:
+  a merge decision is yes or no, and a partial score invites arguing the bar after the fact.
+
+The split is deliberate. Partial credit measures progress; binary verdicts guard the merge.
+Say which one a given number is.
+
 ## Metric catalog by task family
 
 Pick from the family that matches the promise. Each entry names the failure mode of
@@ -92,6 +118,24 @@ copying and punish good paraphrase.
 
 See `10-agentic-evals.md`. Outcome (final state) and trajectory (how it got there) are
 graded separately.
+
+### Customer feedback (production signal, feeds error analysis)
+
+One more grader source alongside code assertions and judges, and the only one that
+measures what users actually think rather than what a rubric predicts. It lives at the
+monitor stage and its findings feed `12-error-analysis.md` as new error categories.
+
+| Signal | Measures | Watch for |
+|---|---|---|
+| Explicit rating (thumbs, stars) | Stated satisfaction | Low information: a thumbs-down rarely says *what* was wrong, so you infer; sparse and biased toward extremes |
+| Regeneration | User asked for the answer again | The clearest implicit "that was wrong"; count the rate per feature |
+| Edit-then-retry | User changed the prompt before rerunning | The first output missed; the edit shows what was missing |
+| Follow-up question | User had to ask again to get there | The first answer was incomplete |
+| Edit of the output | User fixed the answer by hand | The edit is a free labeled diff of exactly what was wrong; the richest signal there is |
+
+Implicit behavioral signals beat explicit ratings: they are dense, unprompted, and each
+one points at a specific failure. Mine them for error categories, then measure those
+categories with the deterministic and judged graders above.
 
 ### Cost and latency (always, alongside any of the above)
 

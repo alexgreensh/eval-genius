@@ -33,6 +33,9 @@ Rules:
   lower-is-better p95 ms).
 - Controls are enumerated, not assumed. Anything not on the list is a suspect when a
   delta appears.
+- The **presence of a whole component** is a lever too. "With the retriever vs without",
+  "with the skill vs without" is an ablation, and the without-arm is its control
+  (`06-harness-design.md`). Use it whenever the question is "does adding X earn its cost".
 
 ## 3. Decide where a measurement belongs
 
@@ -64,9 +67,11 @@ Decision walk:
 
 A benchmark run once was an eval. An eval running forever in production is a monitor
 and needs sampling, alerting, and drift handling that an eval never had. Monitors
-are out of this skill's scope beyond one rule: the offline eval's per-item scorer is
+are out of this skill's scope beyond two rules: the offline eval's per-item scorer is
 reused on a sampled slice of live traffic, so the offline and online numbers share a
-definition and drift between them is itself a finding.
+definition and drift between them is itself a finding; and a live system needs a standing
+human-label stream (an annotation queue on sampled traffic) to source labels and to catch
+scorer drift over time (`03-judge-calibration.md`).
 
 ## 5. Define "better" as a threshold before looking
 
