@@ -9,10 +9,10 @@
     {
       "name": "eval-genius",
       "source": "./",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "description": "Decide, design, gate, judge, and defend evaluations for LLM, agent, and retrieval systems. Not ordinary unit tests.",
       "license": "Apache-2.0",
-      "keywords": ["evaluation", "evals", "llm", "agents", "rag", "benchmark", "ci", "testing"]
+      "keywords": ["evaluation", "evals", "llm", "agents", "rag", "benchmark", "ci", "testing", "codex", "droid", "cross-agent"]
     }
   ]
 }
