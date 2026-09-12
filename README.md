@@ -12,8 +12,18 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue" alt="License: Apache 2.0"></a>
-  <img src="https://img.shields.io/badge/works%20across-Claude%20Code%20·%20Codex%20·%20Cursor%20·%20any%20agent-8A5CF6" alt="Works across any agent">
   <img src="https://img.shields.io/badge/scripts-stdlib%20Python%20·%20zero%20deps-2ea44f" alt="Stdlib Python, zero dependencies">
+</p>
+
+<p align="center">
+  <a href="#install" title="Claude Code"><img src="assets/logos/claude.svg" height="46" alt="Claude Code"></a>
+  &nbsp;&nbsp;
+  <a href="#install" title="OpenAI Codex"><img src="assets/logos/codex.svg" height="46" alt="OpenAI Codex"></a>
+  &nbsp;&nbsp;
+  <a href="#install" title="Factory Droid"><img src="assets/logos/droid.svg" height="46" alt="Factory Droid"></a>
+</p>
+<p align="center">
+  <sub>Runs natively in <strong>Claude Code</strong>, <strong>Codex</strong>, and <strong>Droid</strong> — or any agent that loads a <code>SKILL.md</code>.</sub>
 </p>
 
 <p align="center">
@@ -45,7 +55,7 @@ It is not a course you have to read first. You describe where you are, in plain 
 
 There are two doors in, and neither asks for eval vocabulary. If you can already say what "good" looks like, it works top-down from that promise. If all you have is "the outputs are sometimes wrong and I don't know what to measure," it works bottom-up instead: it reads your real bad outputs with you, names the error categories, and turns each one into something measurable. Same discipline, entered from wherever you actually stand.
 
-It is tool-agnostic and dependency-free: a `SKILL.md` plus a few standard-library Python scripts. It runs in Claude Code, or any agent that loads skills, or from your terminal on its own.
+It is tool-agnostic and dependency-free: a `SKILL.md` plus a few standard-library Python scripts. It runs in Claude Code, Codex, and Droid, or any agent that loads skills, or from your terminal on its own.
 
 ## What you can ask it
 
@@ -129,12 +139,17 @@ Eval Genius is a Claude Code plugin. Add the marketplace once, then install:
 /plugin install eval-genius@eval-genius
 ```
 
-Prefer a plain skill folder, or using another agent? The skill lives at `skills/eval-genius/` — copy it wherever your agent looks for skills:
+Using another agent? The skill lives at `skills/eval-genius/`. Point that agent's skills directory at it — a symlink keeps it in sync as the skill updates:
 
 ```bash
-cp -R skills/eval-genius ~/.claude/skills/eval-genius
+# from the repo root
+ln -s "$PWD/skills/eval-genius" ~/.codex/skills/eval-genius      # OpenAI Codex
+ln -s "$PWD/skills/eval-genius" ~/.factory/skills/eval-genius    # Factory Droid
+cp -R skills/eval-genius ~/.claude/skills/eval-genius            # plain skill folder
 # Any other agent: point it at skills/eval-genius/SKILL.md
 ```
+
+Cursor, Antigravity, Devin and similar have no global skills folder; they pick the skill up per-repo (via `AGENTS.md` or the agent's rules) or when you delegate a task with the repo checked out.
 
 Then talk to it in plain language (*"do I need evals for my chatbot?"*, *"is this delta real?"*, *"calibrate my judge"*). The scripts also run on their own:
 
