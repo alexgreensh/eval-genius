@@ -109,11 +109,9 @@ class CoverageGapTest(CLITest):
         self.assertIn("items 1", result.stdout)
 
     def test_bootstrap_accepts_jsonl(self):
-        a = self.write_jsonl("a.jsonl", [{"id": "x", "score": 0},
-                                         {"id": "y", "score": 1}])
-        b = self.write_jsonl("b.jsonl", [{"id": "x", "score": 1},
-                                         {"id": "y", "score": 1}])
-        result = self.cli("paired_bootstrap.py", "--a", a, "--b", b, "--reps", "100")
+        a = self.write_jsonl("a.jsonl", [{"id": str(i), "score": 0} for i in range(4)])
+        b = self.write_jsonl("b.jsonl", [{"id": str(i), "score": 1} for i in range(4)])
+        result = self.cli("paired_bootstrap.py", "--a", a, "--b", b, "--reps", "200")
         self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
         self.assertIn("95% interval", result.stdout)
 
