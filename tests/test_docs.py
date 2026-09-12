@@ -78,6 +78,10 @@ class DocsIntegrityTest(unittest.TestCase):
             for path in sorted((SKILL_DIR / subdir).rglob("*")):
                 if not path.is_file():
                     continue
+                # Ignore build artifacts (CI runs py_compile before the tests, which
+                # writes scripts/__pycache__/*.pyc); they are not shipped source.
+                if "__pycache__" in path.parts or path.suffix == ".pyc":
+                    continue
                 rel = path.relative_to(SKILL_DIR).as_posix()
                 with self.subTest(file=rel):
                     if is_routed(rel, path.name, self.mentioned, self.backticked):
