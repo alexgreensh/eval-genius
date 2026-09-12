@@ -81,6 +81,9 @@ chance that something looks significant by luck. Mitigations:
 - **Outlier rule** from the pre-registration, applied as written: cap, exclude with
   disclosure, or report separately. Never decided after seeing which item dominates.
 - **Per-layer**, always. Deterministic and judged scores are never blended.
+- **Partial-credit scores** (a per-item fraction, `02-grading-and-metrics.md`) are averaged
+  like any score for a capability measurement, with the same interval treatment. A gate
+  still reduces each item to pass/fail; do not feed a partial fraction into a merge decision.
 
 ## What "significant" buys
 

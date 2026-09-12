@@ -47,6 +47,25 @@ They generalize to any task-style item:
 Run all four on every item before it enters the set. The third check is the same
 "verify the verifier" rule the harness enforces at run time.
 
+## Grader hack-resistance (the subject gaming the check)
+
+The four defects above are author mistakes. This one is the system under test finding a way
+to pass without doing the work: reproducing a leaked test, exploiting a policy loophole,
+producing the tokens the grader keys on without the behavior they stand for. A capable
+system will find these, and a "pass" it earned by gaming is worse than a fail because it
+looks like success.
+
+- **Hidden tests stay hidden.** The system never sees the grading items or the check code;
+  a leaked test measures memorization.
+- **Grade outcomes, not stated intentions.** A system that says it did the thing is not the
+  same as one that did it. Assert on the end state.
+- **A pass earned by a loophole is a task-spec bug, not a win.** When a system "fails" as
+  written while genuinely doing better, or passes by an exploit, the prompt or grader was
+  under-specified. Fix the spec (an under-specified prompt, from the defect table), do not
+  bank the score.
+- Treat reward-hunting as the system-side mirror of "run until green": suspect it on
+  every surprising pass.
+
 ## Negative space
 
 A benchmark that only walks the happy path tests half a promise. Build, on purpose:

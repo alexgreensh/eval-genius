@@ -4,6 +4,16 @@ For the reader who has never built one. Read this when the ask is "I think I mig
 need evals", "where do evals fit in my process", or "which eval should I run". It ends
 with a concrete first-eval recipe; everything else in the skill deepens one step of it.
 
+## Where to start, by who you are
+
+- **Domain expert or PM, no eval background.** You own "what good looks like". Start from
+  real failures, not theory: `12-error-analysis.md` turns your product's actual bad outputs
+  into the things worth measuring. You do not need to know the vocabulary to begin.
+- **Engineer building the thing.** Use the stage table below to place the first eval, then
+  the first-eval recipe. The rest of the skill deepens each step.
+- **Comparing systems or making a public claim.** You are in benchmark territory:
+  `04-search-vs-build.md` first (adopt before you build), then `05` and `09`.
+
 ## What an eval is, in one paragraph
 
 An eval is a repeatable check on a system whose outputs vary: a fixed set of inputs,
@@ -36,14 +46,26 @@ that used to work.
 | **Merging or shipping** | Deciding whether this goes out | Gate in CI | Held-out items, PASS / FAIL / CANNOT-MEASURE, a known-bad item that must fail | Personal prototype, no users |
 | **Comparing or claiming** | Versus a rival, an older version, or a public number | Benchmark | Versioned dataset plus harness, interval on every number, written report | No comparison, no claim |
 | **Running in production** | Real traffic, real drift | Monitor | The same per-item scorer on a sampled slice of live traffic | Not launched yet |
+| **Guarding each response** | Checking output inline, before the user sees it | Guardrail | One fast check on the response path; a failure retries the generation or routes it to a repair call | Latency budget forbids it, or nothing harmful can ship |
 
 Timing rule: build the first eval at **first working version**. Earlier, there is
 nothing stable to measure; later, every change since is unattributable and the eval
 is built under pressure. Each later stage reuses the same items and scorer, heavier
-only in what surrounds them.
+only in what surrounds them. Items inside a suite have a lifecycle too: a
+capability item that saturates graduates into the regression suite
+(`07-gates-and-ci.md`).
 
-## Which eval do I run? Four forks
+## Which eval do I run? Forks
 
+0. **What is the unit under test?** Name it before anything else, because it sets the
+   scope of everything below.
+   - **One step in the product** (a summarizer, a classifier, a retrieval call): a scoped
+     eval on that step's inputs and outputs. Smallest, start here if unsure.
+   - **The whole AI system end to end** (a multi-step agent, a full pipeline): a
+     task-success eval on the final result, plus trajectory (`10-agentic-evals.md`); the
+     harness is itself a lever.
+   - **A comparison or public claim** (versus a rival, an older version, a number you will
+     publish): a benchmark (`04-search-vs-build.md`), adopt before you build.
 1. **What does one output look like?** An exact answer (a label, a number, a
    file), a structured object (JSON, a table), free text (a summary, a reply), or a
    sequence of actions (an agent). Name it; the grader follows from it.

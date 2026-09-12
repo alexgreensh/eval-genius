@@ -92,6 +92,20 @@ For high-stakes calls, run two judges (different families) or two prompt variant
 Where they agree, there is a signal. Where they disagree, there is not; route those
 items to a human or report them as undetermined. Never average away a disagreement.
 
+## Alignment is not only for judges, and not one-time
+
+The same "measure the scorer against humans" discipline applies beyond model judges:
+
+- **Code assertions get checked against human labels too.** A regex or rule encodes an
+  assumption ("`typically` always marks a general question") that can be wrong. Sample the
+  items it scored and confirm a human agrees; deterministic does not mean self-validating.
+- **Alignment drifts, so keep a standing stream.** A scorer calibrated once will fall out of
+  step as inputs, models, and usage change. Hand-label a small percentage of traces on a
+  continuing basis, even for a scorer sitting at high agreement, precisely to catch the day
+  it stops matching. In a live system this stream is also where labels come from: an
+  annotation queue on sampled production traffic feeds both the calibration set and the
+  error analysis in `12-error-analysis.md`.
+
 ## Cost discipline
 
 Judge tokens are eval cost. Report them separately from system cost. A judged layer

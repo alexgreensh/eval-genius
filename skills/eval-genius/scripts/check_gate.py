@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """Compare a treatment run against a baseline run, per item, with a three-way outcome.
 
+Verdicts are binary (pass/fail/error) by design: a gate is a merge decision, so
+partial-credit fractions belong in capability measurement, not here (see
+references/02-grading-and-metrics.md and paired_bootstrap.py, which reads the score field).
+
 Exit codes (CI must honor all three):
   0  PASS            bar met on the same fixture with a live treatment arm
   1  FAIL            ran correctly, bar not met
