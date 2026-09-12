@@ -39,7 +39,9 @@ Items are often not independent: several questions per document, several tasks p
 repository, several turns per conversation. Naive standard errors on clustered items
 have been measured at a third of the true value. When items share a parent, compute
 the interval over parents (cluster bootstrap: resample parents, not items) or report
-the cluster count as the effective n.
+the cluster count as the effective n. The bootstrap needs at least 4 distinct parents
+to produce an interval at all, and below ~10 the interval is coarse, so prefer more
+parents over more items per parent.
 
 ## Sample size and minimum detectable effect
 
