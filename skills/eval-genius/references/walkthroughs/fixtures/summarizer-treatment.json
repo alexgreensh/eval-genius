@@ -1,7 +1,7 @@
 {
   "manifest": {
     "run_id": "r-toy-sum-treat",
-    "fixture_hash": "sha256:a012097c08df304a7da0a2868fb46e46e91e622478cc1f1ec6bcf339815322a6",
+    "fixture_hash": "sha256:5c90dcb5d3b7aeb714505a4097555d1294d211b8b6b919a8b57154ef1bb32996",
     "liveness": "passed",
     "negative_control_id": "sum-neg",
     "arm": {

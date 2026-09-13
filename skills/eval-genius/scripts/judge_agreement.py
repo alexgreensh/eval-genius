@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Measure agreement between judge and human labels on a calibration set.
 
-Input: JSON {"items":[{"id","label"}]}, JSONL, or CSV with id,label. IDs must be
+Input: JSON {"items":[{"id","label"}]}, JSONL, or CSV with an id,label header (case-insensitive). IDs must be
 unique non-empty strings. Labels must be strings in --labels (default pass,fail).
 At least 50 shared IDs and 80% coverage of each file are required by default.
 
@@ -12,11 +12,15 @@ Behavior change: labels are now restricted to the --labels set (default pass,fai
 a value outside it, or a non-string id, is CANNOT-MEASURE. For a multi-class rubric
 pass every class via --labels (e.g. --labels A,B,C); for numeric ids, stringify them
 in the file first (arbitrary numeric ids are no longer coerced silently).
+--human and --judge must resolve to different files (same path, symlink, or
+hardlink is CANNOT-MEASURE); a file compared to itself always agrees. Identity is
+per file, not per label set: identical content in two files still compares.
 """
 import argparse
 import csv
 import json
 import math
+import os
 import sys
 from collections import Counter
 
@@ -29,9 +33,23 @@ def cannot(message):
     sys.exit(2)
 
 
+def _reject_dup_keys(pairs):
+    obj = {}
+    for key, value in pairs:
+        if key in obj:
+            raise ValueError(f"duplicate key {key!r}")
+        obj[key] = value
+    return obj
+
+
 def load(path, allowed_labels):
     try:
         with open(path, encoding="utf-8-sig") as handle:
+            try:
+                stat = os.fstat(handle.fileno())
+                identity = (stat.st_dev, stat.st_ino) if stat.st_ino else ("path", os.path.realpath(path))
+            except OSError:
+                identity = ("path", os.path.realpath(path))
             text = handle.read().strip()
     except FileNotFoundError:
         cannot(f"file not found: {path}")
@@ -39,19 +57,22 @@ def load(path, allowed_labels):
         cannot(f"cannot read {path} as UTF-8 ({exc})")
     try:
         if text.lower().startswith("id,"):
-            rows = list(csv.DictReader(text.splitlines()))
+            rows = [{(key.lower() if isinstance(key, str) else key): value
+                     for key, value in row.items()}
+                    for row in csv.DictReader(text.splitlines())]
         else:
             try:
-                data = json.loads(text)
+                data = json.loads(text, object_pairs_hook=_reject_dup_keys)
                 if isinstance(data, dict):
                     if "items" not in data:
                         raise TypeError("JSON object needs an 'items' array")
                     rows = data["items"]
                 else:
                     rows = data
-            except (json.JSONDecodeError, ValueError):
-                rows = [json.loads(line) for line in text.splitlines() if line.strip()]
-    except (json.JSONDecodeError, ValueError, KeyError, TypeError, csv.Error) as exc:
+            except (json.JSONDecodeError, ValueError, RecursionError):
+                rows = [json.loads(line, object_pairs_hook=_reject_dup_keys)
+                        for line in text.splitlines() if line.strip()]
+    except (json.JSONDecodeError, ValueError, KeyError, TypeError, csv.Error, RecursionError) as exc:
         cannot(f"{path} is not JSON/JSONL/CSV with id,label ({exc})")
     if not isinstance(rows, list):
         cannot(f"{path} items must be an array.")
@@ -67,7 +88,7 @@ def load(path, allowed_labels):
         if item_id in result:
             cannot(f"{path} contains duplicate item id {item_id!r}")
         result[item_id] = label.strip().lower()
-    return result
+    return result, identity
 
 
 def kappa(pairs):
@@ -102,7 +123,12 @@ def main():
     if positive not in allowed:
         cannot("--positive must be one of --labels.")
 
-    human, judge = load(args.human, allowed), load(args.judge, allowed)
+    (human, human_id), (judge, judge_id) = load(args.human, allowed), load(args.judge, allowed)
+    # Identity captured from the opened descriptors, same as check_gate: a path swap
+    # after open() cannot smuggle a different file past this comparison.
+    if human_id == judge_id:
+        cannot(f"--human and --judge name the same file ({args.human}). A label file "
+               "compared to itself always agrees; point the two arms at distinct label sets.")
     common = sorted(set(human) & set(judge))
     if len(common) < 50:
         cannot(f"only {len(common)} shared ids; a calibration set this small is anecdote, not agreement.")
@@ -117,15 +143,17 @@ def main():
     true_positive = sum(h == positive and j == positive for h, j in pairs)
     false_positive = sum(h != positive and j == positive for h, j in pairs)
     false_negative = sum(h == positive and j != positive for h, j in pairs)
-    precision = true_positive / (true_positive + false_positive) if true_positive + false_positive else float("nan")
-    recall = true_positive / (true_positive + false_negative) if true_positive + false_negative else float("nan")
+    precision = true_positive / (true_positive + false_positive) if true_positive + false_positive else None
+    recall = true_positive / (true_positive + false_negative) if true_positive + false_negative else None
+    precision_text = f"{precision:.3f}" if precision is not None else f"undefined (judge never predicts {positive})"
+    recall_text = f"{recall:.3f}" if recall is not None else f"undefined (humans never label {positive})"
     missing = (set(human) | set(judge)) - set(common)
     print(f"n {len(common)} shared items" + (f" ({len(missing)} unmatched ids ignored after coverage check)" if missing else ""))
     print(f"coverage  human {human_coverage:.3f}   judge {judge_coverage:.3f}")
     print(f"human positive rate {sum(h == positive for h, _ in pairs)/len(pairs):.3f}   judge positive rate {sum(j == positive for _, j in pairs)/len(pairs):.3f}")
     print(f"raw agreement {observed:.3f}   (inflated by class imbalance; do not use for the decision)")
     print(f"Cohen's kappa {coefficient:.3f}   floor {args.floor}")
-    print(f"judge PASS precision {precision:.3f}   recall {recall:.3f}   (vs human PASS)")
+    print(f"judge {positive.upper()} precision {precision_text}   recall {recall_text}   (vs human {positive.upper()})")
     disagreements = [item_id for item_id, pair in zip(common, pairs) if pair[0] != pair[1]]
     if disagreements:
         print("disagreements (first 20): " + ", ".join(disagreements[:20]))

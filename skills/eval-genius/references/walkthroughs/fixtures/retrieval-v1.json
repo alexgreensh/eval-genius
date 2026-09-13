@@ -1,7 +1,7 @@
 {
   "manifest": {
     "run_id": "r-toy-ret-v1",
-    "fixture_hash": "sha256:04890cc7d3d8b172be4229faa36dcac48081e80a7ed2364cb1093d8e7afa86d4",
+    "fixture_hash": "sha256:66c898a60503b2be41f9fbe8730e9d249ddaaebd13228ff4d928723362a07926",
     "liveness": "not-applicable",
     "negative_control_id": "ret-neg",
     "arm": {

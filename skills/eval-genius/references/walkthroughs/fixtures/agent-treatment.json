@@ -1,7 +1,7 @@
 {
   "manifest": {
     "run_id": "r-toy-agent-treat",
-    "fixture_hash": "sha256:c2980655ec999655f06341fbb5837ebae5d7e81ca711c9aff477cd550d24bc55",
+    "fixture_hash": "sha256:fab18222ed8e02a002c6c6b6ddd3b711cf376a4f75849966fe0606693f481104",
     "liveness": "passed",
     "negative_control_id": "task-neg",
     "arm": {

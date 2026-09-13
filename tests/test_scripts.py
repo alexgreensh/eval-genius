@@ -1,3 +1,4 @@
+import os
 import json
 import subprocess
 import sys
@@ -73,6 +74,62 @@ class CLITest(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn("no scored items remain", result.stderr)
 
+    def test_gate_same_file_is_cannot_measure(self):
+        items = [{"id": "bad", "verdict": "fail"}, {"id": "x", "verdict": "pass"}]
+        run = self.write("run.json", self.gate(items))
+        result = self.cli("check_gate.py", "--baseline", run, "--treatment", run)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("same file", result.stderr)
+        self.assertNotIn("Traceback", result.stdout + result.stderr)
+        aliased = self.dir / "run-alias.json"
+        try:
+            aliased.symlink_to(run.name)
+        except (OSError, NotImplementedError):
+            self.skipTest("symlinks not supported on this platform")
+        result = self.cli("check_gate.py", "--baseline", run, "--treatment", aliased)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("same file", result.stderr)
+
+    def test_gate_hardlink_to_same_file_is_cannot_measure(self):
+        items = [{"id": "bad", "verdict": "fail"}, {"id": "x", "verdict": "pass"}]
+        run = self.write("run.json", self.gate(items))
+        hardlinked = self.dir / "run-hardlink.json"
+        try:
+            os.link(run, hardlinked)
+        except (OSError, NotImplementedError):
+            self.skipTest("hardlinks not supported on this platform")
+        result = self.cli("check_gate.py", "--baseline", run, "--treatment", hardlinked)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("same file", result.stderr)
+
+    def test_gate_load_captures_opened_file_identity(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("check_gate", SCRIPTS / "check_gate.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        items = [{"id": "bad", "verdict": "fail"}, {"id": "x", "verdict": "pass"}]
+        run = self.write("run.json", self.gate(items))
+        _, identity = module.load(run, "baseline")
+        stat = os.stat(run)
+        self.assertEqual(identity, (stat.st_dev, stat.st_ino))
+        # a hardlink reports the same identity; a distinct file with identical
+        # content does not
+        hardlinked = self.dir / "run-hardlink.json"
+        try:
+            os.link(run, hardlinked)
+        except (OSError, NotImplementedError):
+            hardlinked = None
+        if hardlinked is not None:
+            self.assertEqual(module.load(hardlinked, "treatment")[1], identity)
+        twin = self.write("twin.json", self.gate(items))
+        self.assertNotEqual(module.load(twin, "treatment")[1], identity)
+
+    def test_gate_identical_content_distinct_files_passes(self):
+        items = [{"id": "bad", "verdict": "fail"}, {"id": "x", "verdict": "pass"}]
+        a, b = self.write("a.json", self.gate(items)), self.write("b.json", self.gate(items))
+        result = self.cli("check_gate.py", "--baseline", a, "--treatment", b)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_gate_fixture_mismatch(self):
         items = [{"id": "bad", "verdict": "fail"}, {"id": "x", "verdict": "pass"}]
         a = self.write("a.json", self.gate(items, fixture="a"))
@@ -136,6 +193,45 @@ class CLITest(unittest.TestCase):
         result = self.cli("check_gate.py", "--baseline", a, "--treatment", b)
         self.assertEqual(result.returncode, 2)
         self.assertIn("baseline items errored", result.stderr)
+
+    def test_gate_all_error_run_is_cannot_measure_despite_budget(self):
+        items = [{"id": "bad", "verdict": "fail"},
+                 {"id": "x", "verdict": "error"}, {"id": "y", "verdict": "error"}]
+        a, b = self.write("a.json", self.gate(items)), self.write("b.json", self.gate(items))
+        result = self.cli("check_gate.py", "--baseline", a, "--treatment", b,
+                          "--error-budget", "1")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("all 2 baseline items errored", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+        # partial errors under a maxed budget still pass — budget semantics unchanged
+        items2 = [{"id": "bad", "verdict": "fail"},
+                  {"id": "x", "verdict": "error"}, {"id": "y", "verdict": "pass"}]
+        a, b = self.write("a2.json", self.gate(items2)), self.write("b2.json", self.gate(items2))
+        result = self.cli("check_gate.py", "--baseline", a, "--treatment", b,
+                          "--error-budget", "1")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_gate_accepts_bom_json(self):
+        items = [{"id": "bad", "verdict": "fail"}, {"id": "x", "verdict": "pass"}]
+        text = json.dumps(self.gate(items))
+        a, b = self.dir / "a.json", self.dir / "b.json"
+        a.write_text(text, encoding="utf-8-sig")
+        b.write_text(text, encoding="utf-8-sig")
+        result = self.cli("check_gate.py", "--baseline", a, "--treatment", b)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_gate_ino_zero_falls_back_to_realpath(self):
+        import importlib.util
+        import unittest.mock
+        spec = importlib.util.spec_from_file_location("check_gate", SCRIPTS / "check_gate.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        items = [{"id": "bad", "verdict": "fail"}, {"id": "x", "verdict": "pass"}]
+        run = self.write("run.json", self.gate(items))
+        fake_stat = os.stat_result((0,) * 10)  # st_ino = 0
+        with unittest.mock.patch.object(module.os, "fstat", return_value=fake_stat):
+            _, identity = module.load(run, "baseline")
+        self.assertEqual(identity, ("path", os.path.realpath(run)))
 
     def test_gate_rejects_valid_json_with_wrong_shapes(self):
         shapes = ({"manifest": None, "items": []}, {"manifest": {}, "items": None},
@@ -365,6 +461,47 @@ class CLITest(unittest.TestCase):
         self.assertEqual(self.cli("paired_bootstrap.py", "--a", a, "--b", b,
                                   "--reps", "200").returncode, 0)
 
+    def test_bootstrap_huge_scores_fail_cleanly(self):
+        cases = [
+            # delta itself overflows float range
+            (-(10**308), 10**308, "not finite"),
+            # deltas fit, but resample sums overflow
+            (0, 10**308, "overflowed"),
+        ]
+        for n, (sa, sb, needle) in enumerate(cases):
+            with self.subTest(n=n):
+                a_data = {"items": [{"id": str(i), "score": sa} for i in range(4)]}
+                b_data = {"items": [{"id": str(i), "score": sb} for i in range(4)]}
+                a, b = self.write(f"ha{n}.json", a_data), self.write(f"hb{n}.json", b_data)
+                result = self.cli("paired_bootstrap.py", "--a", a, "--b", b, "--reps", "200")
+                self.assertEqual(result.returncode, 1)
+                self.assertIn(needle, result.stderr)
+                self.assertNotIn("Traceback", result.stdout + result.stderr)
+
+    def test_bootstrap_tiny_item_count_reports_real_floor(self):
+        for count in (1, 3):
+            with self.subTest(count=count):
+                data = {"items": [{"id": str(i), "score": i} for i in range(count)]}
+                a, b = self.write("a.json", data), self.write("b.json", data)
+                result = self.cli("paired_bootstrap.py", "--a", a, "--b", b, "--reps", "200")
+                self.assertEqual(result.returncode, 1)
+                self.assertIn("at least 4 paired items", result.stderr)
+
+    def test_bootstrap_units_boundary_four_passes(self):
+        data = {"items": [{"id": str(i), "score": i % 2} for i in range(4)]}
+        a, b = self.write("a.json", data), self.write("b.json", data)
+        result = self.cli("paired_bootstrap.py", "--a", a, "--b", b, "--reps", "200")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("caution: only 4 resampling items", result.stderr)
+
+    def test_bootstrap_accepts_bom_json(self):
+        data = {"items": [{"id": str(i), "score": i % 2} for i in range(4)]}
+        a, b = self.dir / "a.json", self.dir / "b.json"
+        a.write_text(json.dumps(data), encoding="utf-8-sig")
+        b.write_text(json.dumps(data), encoding="utf-8-sig")
+        result = self.cli("paired_bootstrap.py", "--a", a, "--b", b, "--reps", "200")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_judge_rejects_small_calibration_set(self):
         data = {"items": [{"id": str(i), "label": "pass"} for i in range(49)]}
         a, b = self.write("human.json", data), self.write("judge.json", data)
@@ -399,6 +536,40 @@ class CLITest(unittest.TestCase):
         a.write_text(rows, encoding="utf-8-sig")
         b.write_text(rows, encoding="utf-8-sig")
         self.assertEqual(self.cli("judge_agreement.py", "--human", a, "--judge", b).returncode, 0)
+
+    def test_judge_same_file_is_cannot_measure(self):
+        data = {"items": [{"id": str(i), "label": "pass" if i % 2 else "fail"}
+                          for i in range(50)]}
+        path = self.write("labels.json", data)
+        result = self.cli("judge_agreement.py", "--human", path, "--judge", path)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("same file", result.stderr)
+        self.assertNotIn("Traceback", result.stdout + result.stderr)
+        # symlink alias: same inode, different name — also refused
+        alias = self.dir / "labels-alias.json"
+        try:
+            alias.symlink_to(path.name)
+        except (OSError, NotImplementedError):
+            self.skipTest("symlinks not supported on this platform")
+        result = self.cli("judge_agreement.py", "--human", path, "--judge", alias)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("same file", result.stderr)
+
+    def test_judge_identical_content_distinct_files_still_compares(self):
+        # File identity, not content identity: two copies of one label set still run.
+        data = {"items": [{"id": str(i), "label": "pass" if i % 2 else "fail"}
+                          for i in range(50)]}
+        a, b = self.write("a.json", data), self.write("b.json", data)
+        result = self.cli("judge_agreement.py", "--human", a, "--judge", b)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_judge_csv_header_is_case_insensitive(self):
+        rows = "ID,label\n" + "".join(f"{i},{'pass' if i % 2 else 'fail'}\n" for i in range(50))
+        a, b = self.dir / "human.csv", self.dir / "judge.csv"
+        a.write_text(rows, encoding="utf-8")
+        b.write_text(rows, encoding="utf-8")
+        result = self.cli("judge_agreement.py", "--human", a, "--judge", b)
+        self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_judge_rejects_json_integer_over_parser_limit(self):
         path = self.dir / "huge.json"
@@ -442,7 +613,30 @@ class CLITest(unittest.TestCase):
         data = {"items": [{"id": str(i), "label": "pass" if i % 2 else "fail"}
                           for i in range(50)]}
         a, b = self.write("human.json", data), self.write("judge.json", data)
-        self.assertEqual(self.cli("judge_agreement.py", "--human", a, "--judge", b).returncode, 0)
+        result = self.cli("judge_agreement.py", "--human", a, "--judge", b)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("nan", result.stdout)
+        self.assertNotIn("undefined", result.stdout)
+
+    def test_judge_undefined_precision_is_spelled_out(self):
+        human = {"items": [{"id": str(i), "label": "pass" if i % 2 else "fail"}
+                           for i in range(50)]}
+        judge = {"items": [{"id": str(i), "label": "fail"} for i in range(50)]}
+        a, b = self.write("human.json", human), self.write("judge.json", judge)
+        result = self.cli("judge_agreement.py", "--human", a, "--judge", b)
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertIn("undefined (judge never predicts pass)", result.stdout)
+        self.assertNotIn("nan", result.stdout)
+
+    def test_judge_undefined_recall_is_spelled_out(self):
+        human = {"items": [{"id": str(i), "label": "fail"} for i in range(50)]}
+        judge = {"items": [{"id": str(i), "label": "pass" if i == 0 else "fail"}
+                           for i in range(50)]}
+        a, b = self.write("human.json", human), self.write("judge.json", judge)
+        result = self.cli("judge_agreement.py", "--human", a, "--judge", b)
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertIn("undefined (humans never label pass)", result.stdout)
+        self.assertNotIn("nan", result.stdout)
 
 
 if __name__ == "__main__":

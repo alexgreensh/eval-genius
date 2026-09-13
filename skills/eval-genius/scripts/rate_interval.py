@@ -43,9 +43,9 @@ def wilson(k, n, confidence):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--k", type=float, required=True,
-                        help="successes: items that passed, fired, or agreed")
+                        help="successes: items that passed, fired, or agreed (whole number)")
     parser.add_argument("--n", type=float, required=True,
-                        help="trials: total items scored")
+                        help="trials: total items scored (whole number)")
     parser.add_argument("--confidence", type=float, default=0.95,
                         help="two-sided confidence level (default: 0.95)")
     args = parser.parse_args()
@@ -57,6 +57,10 @@ def main():
         fail("--n must be greater than zero.")
     if not 0.0 <= k <= n:
         fail("--k must satisfy 0 <= k <= n.")
+    if not k.is_integer() or not n.is_integer():
+        fail("--k and --n are item counts and must be whole numbers.")
+    if k == 0:
+        k = 0.0  # normalize -0.0 so it does not print as "-0"
     if not 0.0 < confidence < 1.0:
         fail("--confidence must be between 0 and 1, exclusive.")
     # A confidence so close to 1 that (1+confidence)/2 rounds to 1.0 has no finite z.
@@ -64,6 +68,10 @@ def main():
         fail("--confidence is too close to 1 to compute a finite interval.")
 
     point, low, high = wilson(k, n, confidence)
+    if f"{low:.4f}" == f"{high:.4f}":
+        print("caution: the interval is a single point at printed precision; a "
+              "zero-width interval cannot support a significance claim.",
+              file=sys.stderr)
     print(f"k {k:g}  n {n:g}  point estimate {point:.4f}")
     print(f"{confidence * 100:g}% Wilson interval [{low:.4f}, {high:.4f}]")
 

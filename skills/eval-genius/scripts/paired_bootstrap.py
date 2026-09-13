@@ -37,16 +37,26 @@ def fail(message):
     sys.exit(1)
 
 
+def _reject_dup_keys(pairs):
+    obj = {}
+    for key, value in pairs:
+        if key in obj:
+            raise ValueError(f"duplicate key {key!r}")
+        obj[key] = value
+    return obj
+
+
 def parse_records(text):
     try:
-        data = json.loads(text)
+        data = json.loads(text, object_pairs_hook=_reject_dup_keys)
         if isinstance(data, dict):
             if "items" not in data:
                 raise TypeError("JSON object needs an 'items' array")
             return data["items"]
         return data
-    except (json.JSONDecodeError, ValueError):
-        return [json.loads(line) for line in text.splitlines() if line.strip()]
+    except (json.JSONDecodeError, ValueError, RecursionError):
+        return [json.loads(line, object_pairs_hook=_reject_dup_keys)
+                for line in text.splitlines() if line.strip()]
 
 
 def scalar(value):
@@ -55,7 +65,7 @@ def scalar(value):
 
 def load(path):
     try:
-        with open(path, encoding="utf-8") as handle:
+        with open(path, encoding="utf-8-sig") as handle:
             text = handle.read().strip()
     except FileNotFoundError:
         fail(f"file not found: {path}")
@@ -63,7 +73,7 @@ def load(path):
         fail(f"cannot read {path} as UTF-8 ({exc})")
     try:
         items = parse_records(text)
-    except (json.JSONDecodeError, ValueError, KeyError, TypeError) as exc:
+    except (json.JSONDecodeError, ValueError, KeyError, TypeError, RecursionError) as exc:
         fail(f"{path} is not a per-item JSON/JSONL file ({exc}). Need records with 'id' and finite numeric 'score'.")
     if not isinstance(items, list):
         fail(f"{path} items must be an array.")
@@ -104,8 +114,6 @@ def main():
     if set(a_items) != set(b_items):
         fail(f"item ids differ ({len(set(a_items)-set(b_items))} only in a, {len(set(b_items)-set(a_items))} only in b). Paired analysis needs identical item sets.")
     ids = sorted(a_items)
-    if len(ids) < 2:
-        fail("need at least 2 paired items.")
     mismatches = [item_id for item_id in ids
                   if a_items[item_id].get("cluster", item_id) != b_items[item_id].get("cluster", item_id)]
     if mismatches:
@@ -113,7 +121,13 @@ def main():
 
     deltas = {}
     for item_id in ids:
-        delta = b_items[item_id]["score"] - a_items[item_id]["score"]
+        # int scores can exceed float range: the subtraction stays exact in Python,
+        # so coerce here — float() raises OverflowError, and from this point every
+        # arithmetic overflow downstream yields inf, which the isfinite guards catch.
+        try:
+            delta = float(b_items[item_id]["score"] - a_items[item_id]["score"])
+        except OverflowError:
+            delta = math.inf
         if not math.isfinite(delta):
             fail(f"score delta for item {item_id!r} is not finite (values overflow or are too large).")
         deltas[item_id] = delta

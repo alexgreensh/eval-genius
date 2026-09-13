@@ -54,7 +54,7 @@ put the hash in every run manifest:
 
 ```
 $ python3 scripts/hash_fixture.py references/walkthroughs/fixtures/summarizer-items.json
-sha256:a012097c08df304a7da0a2868fb46e46e91e622478cc1f1ec6bcf339815322a6
+sha256:5c90dcb5d3b7aeb714505a4097555d1294d211b8b6b919a8b57154ef1bb32996
 ```
 
 ## Run baseline, change one thing, run treatment
@@ -66,7 +66,7 @@ showed prompt v2's hash, so the arm under test was really live.
 
 ```
 $ python3 scripts/check_gate.py --baseline references/walkthroughs/fixtures/summarizer-baseline.json --treatment references/walkthroughs/fixtures/summarizer-treatment.json
-fixture sha256:a012097c08df304a7da0a2868fb46e46e91e622478cc1f1ec6bcf339815322a6  items 30  errors baseline 0 treatment 0
+fixture sha256:5c90dcb5d3b7aeb714505a4097555d1294d211b8b6b919a8b57154ef1bb32996  items 30  errors baseline 0 treatment 0
 pass rate  baseline 0.7333  treatment 0.8667  delta +0.1333
 improved 5  regressed 1  held 24
 regressed ids: sum-08
@@ -117,8 +117,8 @@ a baseline promotion. Shipping it silently is not on the list.
 
 ## 2. Runs
 | Arm | Run id | Fixture hash | Liveness | Outcome | Errors |
-| baseline | r-toy-sum-base | sha256:a012...22a6 | not-applicable | scored | 0/30 |
-| treatment | r-toy-sum-treat | sha256:a012...22a6 | passed | scored | 0/30 |
+| baseline | r-toy-sum-base | sha256:5c90...2996 | not-applicable | scored | 0/30 |
+| treatment | r-toy-sum-treat | sha256:5c90...2996 | passed | scored | 0/30 |
 Negative control sum-neg failed on both runs: yes.
 
 ## 3. Results (deterministic layer; no judged layer)

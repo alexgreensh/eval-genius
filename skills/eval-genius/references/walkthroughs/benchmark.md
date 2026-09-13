@@ -53,7 +53,7 @@ manifest per run. The fixture hash is computed once and pinned:
 
 ```
 $ python3 scripts/hash_fixture.py references/walkthroughs/fixtures/retrieval-items.json
-sha256:04890cc7d3d8b172be4229faa36dcac48081e80a7ed2364cb1093d8e7afa86d4
+sha256:66c898a60503b2be41f9fbe8730e9d249ddaaebd13228ff4d928723362a07926
 ```
 
 The fingerprint refusal is not a nicety, it is the load-bearing check. Feed
@@ -62,7 +62,7 @@ refuses rather than compare:
 
 ```
 $ python3 scripts/check_gate.py --baseline references/walkthroughs/fixtures/retrieval-v1.json --treatment references/walkthroughs/fixtures/summarizer-treatment.json
-CANNOT-MEASURE: fixture fingerprint mismatch: baseline=sha256:04890cc7d3d8b172be4229faa36dcac48081e80a7ed2364cb1093d8e7afa86d4 treatment=sha256:a012097c08df304a7da0a2868fb46e46e91e622478cc1f1ec6bcf339815322a6. Runs on different fixtures are not comparable; re-run both on one fixture.
+CANNOT-MEASURE: fixture fingerprint mismatch: baseline=sha256:66c898a60503b2be41f9fbe8730e9d249ddaaebd13228ff4d928723362a07926 treatment=sha256:5c90dcb5d3b7aeb714505a4097555d1294d211b8b6b919a8b57154ef1bb32996. Runs on different fixtures are not comparable; re-run both on one fixture.
 ```
 
 ## Step 4: the numbers, with intervals (`../08-statistics.md`)
@@ -125,8 +125,8 @@ promise that expired).
 
 ## 2. Runs
 | Arm | Run id | Fixture hash | Liveness | Outcome | Errors |
-| baseline | r-toy-ret-v1 | sha256:0489...86d4 | not-applicable | scored | 0/40 |
-| treatment | r-toy-ret-v2 | sha256:0489...86d4 | passed | scored | 0/40 |
+| baseline | r-toy-ret-v1 | sha256:66c8...7926 | not-applicable | scored | 0/40 |
+| treatment | r-toy-ret-v2 | sha256:66c8...7926 | passed | scored | 0/40 |
 Negative control ret-neg failed on both runs: yes.
 
 ## 3. Results (deterministic layer only)

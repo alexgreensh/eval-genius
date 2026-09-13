@@ -74,6 +74,41 @@ class WilsonKnownValuesTest(unittest.TestCase):
         self.assertIn("99.9% Wilson interval", result.stdout)
 
 
+class DegenerateInputTest(unittest.TestCase):
+    def test_fractional_counts_refused(self):
+        for k, n in (("31.5", "40"), ("31", "40.7"), ("31.5", "40.7"), ("0.5", "10")):
+            with self.subTest(k=k, n=n):
+                result = cli("--k", k, "--n", n)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("whole numbers", result.stderr)
+                self.assertNotIn("Traceback", result.stdout + result.stderr)
+
+    def test_whole_valued_floats_accepted(self):
+        result = cli("--k", "31.0", "--n", "40.0")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("point estimate 0.7750", result.stdout)
+
+    def test_zero_width_interval_carries_caution(self):
+        result = cli("--k", "31", "--n", "40", "--confidence", "1e-20")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("caution: the interval is a single point", result.stderr)
+        self.assertIn("[0.7750, 0.7750]", result.stdout)
+
+    def test_normal_confidence_is_silent(self):
+        for confidence in ("0.90", "0.95", "0.99"):
+            with self.subTest(confidence=confidence):
+                result = cli("--k", "31", "--n", "40", "--confidence", confidence)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(result.stderr, "")
+
+    def test_negative_zero_k_prints_as_zero(self):
+        result = cli("--k", "-0.0", "--n", "5")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("k 0", result.stdout)
+        self.assertNotIn("-0", result.stdout)
+        self.assertIn("point estimate 0.0000", result.stdout)
+
+
 class BadInputTest(unittest.TestCase):
     def test_k_greater_than_n(self):
         self.assertNotEqual(cli("--k", "11", "--n", "10").returncode, 0)

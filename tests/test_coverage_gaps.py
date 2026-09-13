@@ -188,6 +188,78 @@ class CoverageGapTest(CLITest):
         self.assertEqual(result_default.returncode, 2, result_default.stderr)
         self.assertNotIn("Traceback", result_default.stderr)
 
+    # W2-1: duplicate JSON object keys must be rejected in every script's
+    # json.loads and JSONL line-parse, not just hash_fixture. Last-wins collapses
+    # distinct content and fabricates a verdict.
+    def test_gate_rejects_duplicate_json_keys(self):
+        p = self.dir / "dup.json"
+        p.write_text(
+            '{"manifest":{"fixture_hash":"f","liveness":"passed",'
+            '"negative_control_id":"bad"},'
+            '"items":[{"id":"bad","verdict":"fail","verdict":"pass"},'
+            '{"id":"x","verdict":"pass"}]}',
+            encoding="utf-8")
+        result = self.cli("check_gate.py", "--baseline", p, "--treatment", p)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("duplicate key", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_judge_rejects_duplicate_json_keys(self):
+        p = self.dir / "dup.json"
+        p.write_text(
+            '{"items":[{"id":"0","label":"pass","label":"fail"}]}',
+            encoding="utf-8")
+        result = self.cli("judge_agreement.py", "--human", p, "--judge", p)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("duplicate key", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_bootstrap_rejects_duplicate_json_keys(self):
+        p = self.dir / "dup.json"
+        p.write_text(
+            '{"items":[{"id":"0","score":1.0,"score":0.0},'
+            '{"id":"1","score":0.0},{"id":"2","score":0.0},'
+            '{"id":"3","score":0.0}]}',
+            encoding="utf-8")
+        result = self.cli("paired_bootstrap.py", "--a", p, "--b", p, "--reps", "200")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("duplicate key", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
+    # W2-3: deeply-nested JSON (~200k depth) crashes with RecursionError.
+    # Every script must catch it and exit cleanly with the right code, no Traceback.
+    @staticmethod
+    def _nested_json(depth=200_000):
+        return "[" * depth + "1" + "]" * depth
+
+    def test_gate_rejects_deeply_nested_json(self):
+        p = self.dir / "nested.json"
+        p.write_text(self._nested_json(), encoding="utf-8")
+        result = self.cli("check_gate.py", "--baseline", p, "--treatment", p)
+        self.assertEqual(result.returncode, 2)
+        self.assertNotIn("Traceback", result.stderr + result.stdout)
+
+    def test_judge_rejects_deeply_nested_json(self):
+        p = self.dir / "nested.json"
+        p.write_text(self._nested_json(), encoding="utf-8")
+        result = self.cli("judge_agreement.py", "--human", p, "--judge", p)
+        self.assertEqual(result.returncode, 2)
+        self.assertNotIn("Traceback", result.stderr + result.stdout)
+
+    def test_bootstrap_rejects_deeply_nested_json(self):
+        p = self.dir / "nested.json"
+        p.write_text(self._nested_json(), encoding="utf-8")
+        result = self.cli("paired_bootstrap.py", "--a", p, "--b", p, "--reps", "200")
+        self.assertEqual(result.returncode, 1)
+        self.assertNotIn("Traceback", result.stderr + result.stdout)
+
+    def test_hash_fixture_rejects_deeply_nested_json(self):
+        p = self.dir / "nested.json"
+        p.write_text(self._nested_json(), encoding="utf-8")
+        result = self.cli("hash_fixture.py", p)
+        self.assertEqual(result.returncode, 2)
+        self.assertNotIn("Traceback", result.stderr + result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -85,6 +85,61 @@ class HashFixtureTest(Base):
         p.write_text("not json at all", encoding="utf-8")
         self.assertEqual(self.cli("hash_fixture.py", p).returncode, 2)
 
+    def test_duplicate_keys_rejected(self):
+        p = self.dir / "dup.json"
+        p.write_text('{"items":[{"id":"x","s":1,"s":2}]}', encoding="utf-8")
+        out = self.cli("hash_fixture.py", p)
+        self.assertEqual(out.returncode, 2)
+        self.assertIn("duplicate", out.stderr)
+        self.assertNotIn("Traceback", out.stderr)
+        j = self.dir / "dup.jsonl"
+        j.write_text('{"id":"x","s":1,"s":2}\n{"id":"y","s":3}\n', encoding="utf-8")
+        out = self.cli("hash_fixture.py", j)
+        self.assertEqual(out.returncode, 2)
+        self.assertIn("duplicate", out.stderr)
+
+    def test_same_id_record_order_does_not_change_hash(self):
+        a = self.dir / "a.json"
+        a.write_text('[{"id":"x","s":1},{"id":"x","s":2}]', encoding="utf-8")
+        b = self.dir / "b.json"
+        b.write_text('[{"id":"x","s":2},{"id":"x","s":1}]', encoding="utf-8")
+        self.assertEqual(self.cli("hash_fixture.py", a).stdout,
+                         self.cli("hash_fixture.py", b).stdout)
+
+    def test_sibling_keys_change_hash(self):
+        base = self.dir / "base.json"
+        base.write_text('{"items":[{"id":"x","s":1}]}', encoding="utf-8")
+        with_version = self.dir / "v1.json"
+        with_version.write_text('{"items":[{"id":"x","s":1}],"version":1}', encoding="utf-8")
+        with_version2 = self.dir / "v2.json"
+        with_version2.write_text('{"items":[{"id":"x","s":1}],"version":2}', encoding="utf-8")
+        base_hash = self.cli("hash_fixture.py", base).stdout.strip()
+        v1_hash = self.cli("hash_fixture.py", with_version).stdout.strip()
+        v2_hash = self.cli("hash_fixture.py", with_version2).stdout.strip()
+        # Sibling keys are included: version:1 and version:2 produce different hashes.
+        self.assertNotEqual(v1_hash, v2_hash)
+        # A bare items object and a versioned object hash differently.
+        self.assertNotEqual(base_hash, v1_hash)
+        # The versioned fixture still exits 0.
+        self.assertEqual(self.cli("hash_fixture.py", with_version).returncode, 0)
+        self.assertNotIn("Traceback", self.cli("hash_fixture.py", with_version).stderr)
+
+    def test_empty_fixture_rejected(self):
+        for name, text in (("obj.json", '{"items":[]}'), ("arr.json", "[]")):
+            with self.subTest(name=name):
+                p = self.dir / name
+                p.write_text(text, encoding="utf-8")
+                out = self.cli("hash_fixture.py", p)
+                self.assertEqual(out.returncode, 2)
+                self.assertIn("no records", out.stderr)
+
+    def test_bom_fixture_accepted(self):
+        p = self.dir / "bom.json"
+        p.write_text('{"items":[{"id":"a","input":"x"}]}', encoding="utf-8-sig")
+        out = self.cli("hash_fixture.py", p)
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertTrue(out.stdout.strip().startswith("sha256:"))
+
 
 class JudgeHashConsistencyTest(Base):
     @staticmethod

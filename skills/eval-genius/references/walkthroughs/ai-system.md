@@ -89,7 +89,7 @@ order-randomized, pinned by model snapshot and prompt hash.
 
 ```
 $ python3 scripts/check_gate.py --baseline references/walkthroughs/fixtures/agent-baseline.json --treatment references/walkthroughs/fixtures/agent-treatment.json
-fixture sha256:c2980655ec999655f06341fbb5837ebae5d7e81ca711c9aff477cd550d24bc55  items 12  errors baseline 0 treatment 0
+fixture sha256:fab18222ed8e02a002c6c6b6ddd3b711cf376a4f75849966fe0606693f481104  items 12  errors baseline 0 treatment 0
 pass rate  baseline 0.6667  treatment 0.8333  delta +0.1667
 improved 2  regressed 0  held 10
 PASS
@@ -138,8 +138,8 @@ retry only because it ends CANNOT-MEASURE; a FAIL never retries.
 
 ## 2. Runs
 | Arm | Run id | Fixture hash | Liveness | Outcome | Errors |
-| baseline | r-toy-agent-base | sha256:c298...bc55 | not-applicable | scored | 0/12 |
-| treatment | r-toy-agent-treat | sha256:c298...bc55 | passed | scored | 0/12 |
+| baseline | r-toy-agent-base | sha256:fab1...1104 | not-applicable | scored | 0/12 |
+| treatment | r-toy-agent-treat | sha256:fab1...1104 | passed | scored | 0/12 |
 Negative control task-neg failed on both runs: yes.
 
 ## 3. Results
