@@ -206,13 +206,15 @@ class CLITest(unittest.TestCase):
         a, b = self.write("a.json", a_data), self.write("b.json", b_data)
         self.assertEqual(self.cli("paired_bootstrap.py", "--a", a, "--b", b).returncode, 1)
 
-    def test_bootstrap_rejects_zero_reps_cleanly(self):
+    def test_bootstrap_rejects_too_few_reps(self):
         data = {"items": [{"id": "x", "score": 0}, {"id": "y", "score": 1}]}
         a, b = self.write("a.json", data), self.write("b.json", data)
-        result = self.cli("paired_bootstrap.py", "--a", a, "--b", b, "--reps", "0")
-        self.assertEqual(result.returncode, 1)
-        self.assertIn("--reps must be between 1 and 100000", result.stderr)
-        self.assertNotIn("Traceback", result.stderr)
+        for reps in ("0", "1", "199"):
+            with self.subTest(reps=reps):
+                result = self.cli("paired_bootstrap.py", "--a", a, "--b", b, "--reps", reps)
+                self.assertEqual(result.returncode, 1)
+                self.assertIn("--reps must be between 200 and 100000", result.stderr)
+                self.assertNotIn("Traceback", result.stderr)
 
     def test_bootstrap_rejects_duplicate_ids(self):
         dup = {"items": [{"id": "x", "score": 0}, {"id": "x", "score": 1}]}
@@ -261,7 +263,7 @@ class CLITest(unittest.TestCase):
         a, b = self.write("a.json", data), self.write("b.json", data)
         result = self.cli("paired_bootstrap.py", "--a", a, "--b", b, "--reps", "100001")
         self.assertEqual(result.returncode, 1)
-        self.assertIn("between 1 and 100000", result.stderr)
+        self.assertIn("between 200 and 100000", result.stderr)
 
     def test_bootstrap_rejects_json_integer_over_parser_limit(self):
         path = self.dir / "huge.json"
@@ -293,20 +295,75 @@ class CLITest(unittest.TestCase):
         self.assertIn("exceeds 10000000 resampled item values", result.stderr)
         self.assertNotIn("Traceback", result.stderr)
 
-    def test_bootstrap_work_cap_cannot_be_bypassed_by_one_cluster(self):
-        data = {"items": [{"id": str(i), "score": i % 2, "cluster": "all"} for i in range(101)]}
+    def test_bootstrap_work_cap_counts_items_not_clusters(self):
+        data = {"items": [{"id": str(i), "score": i % 2, "cluster": str(i % 4)}
+                          for i in range(101)]}
         a, b = self.write("a.json", data), self.write("b.json", data)
         result = self.cli("paired_bootstrap.py", "--a", a, "--b", b, "--reps", "100000")
         self.assertEqual(result.returncode, 1)
         self.assertIn("101 items x 100000 reps", result.stderr)
         self.assertNotIn("Traceback", result.stderr)
 
+    def test_bootstrap_rejects_too_few_resampling_units(self):
+        # One cluster and 2-3 clusters are equally degenerate for the tails.
+        clustered = [({"items": [{"id": str(i), "score": i % 2, "cluster": "all"} for i in range(10)]},
+                      {"items": [{"id": str(i), "score": i % 2 + 1, "cluster": "all"} for i in range(10)]}),
+                     ({"items": [{"id": str(i), "score": i % 2, "cluster": str(i % 2)} for i in range(10)]},
+                      {"items": [{"id": str(i), "score": i % 2 + 1, "cluster": str(i % 2)} for i in range(10)]})]
+        for n, (a_data, b_data) in enumerate(clustered):
+            with self.subTest(n=n):
+                a, b = self.write(f"a{n}.json", a_data), self.write(f"b{n}.json", b_data)
+                result = self.cli("paired_bootstrap.py", "--a", a, "--b", b, "--reps", "500")
+                self.assertEqual(result.returncode, 1)
+                self.assertIn("independent resampling units", result.stderr)
+                self.assertNotIn("Traceback", result.stderr)
+        # Unclustered 2-3 item fixtures hit the item-count side of the same floor.
+        for count in (2, 3):
+            with self.subTest(count=count):
+                data = {"items": [{"id": str(i), "score": i % 2} for i in range(count)]}
+                a, b = self.write("a.json", data), self.write("b.json", data)
+                result = self.cli("paired_bootstrap.py", "--a", a, "--b", b)
+                self.assertEqual(result.returncode, 1)
+                self.assertIn("at least 4 paired items", result.stderr)
+
+    def test_bootstrap_units_floor_precedes_work_cap(self):
+        # A degenerate input reports the unit problem, not the work size.
+        data = {"items": [{"id": str(i), "score": i % 2, "cluster": "all"} for i in range(101)]}
+        a, b = self.write("a.json", data), self.write("b.json", data)
+        result = self.cli("paired_bootstrap.py", "--a", a, "--b", b, "--reps", "100000")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("independent resampling units", result.stderr)
+
+    def test_bootstrap_warns_on_few_units(self):
+        def fixture(clusters, shift):
+            return {"items": [{"id": str(i), "score": i % 2 + shift * (i % 3),
+                               "cluster": str(i % clusters)}
+                              for i in range(clusters * 5)]}
+        a, b = self.write("a.json", fixture(5, 0)), self.write("b.json", fixture(5, 1))
+        result = self.cli("paired_bootstrap.py", "--a", a, "--b", b, "--reps", "200")
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("caution: only 5 resampling clusters", result.stderr)
+        a, b = self.write("a.json", fixture(12, 0)), self.write("b.json", fixture(12, 1))
+        result = self.cli("paired_bootstrap.py", "--a", a, "--b", b, "--reps", "200")
+        self.assertEqual(result.returncode, 0)
+        self.assertNotIn("caution", result.stderr)
+
+    def test_bootstrap_point_interval_cautions(self):
+        # Identical deltas give a zero-width interval: reported, but flagged.
+        a_data = {"items": [{"id": str(i), "score": 0} for i in range(6)]}
+        b_data = {"items": [{"id": str(i), "score": 1} for i in range(6)]}
+        a, b = self.write("a.json", a_data), self.write("b.json", b_data)
+        result = self.cli("paired_bootstrap.py", "--a", a, "--b", b, "--reps", "200")
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("single point", result.stderr)
+        self.assertIn("interval excludes zero", result.stdout)
+
     def test_bootstrap_valid_pair(self):
-        a_data = {"items": [{"id": "x", "score": 0}, {"id": "y", "score": 1}]}
-        b_data = {"items": [{"id": "x", "score": 1}, {"id": "y", "score": 1}]}
+        a_data = {"items": [{"id": str(i), "score": 0} for i in range(4)]}
+        b_data = {"items": [{"id": str(i), "score": 1} for i in range(4)]}
         a, b = self.write("a.json", a_data), self.write("b.json", b_data)
         self.assertEqual(self.cli("paired_bootstrap.py", "--a", a, "--b", b,
-                                  "--reps", "100").returncode, 0)
+                                  "--reps", "200").returncode, 0)
 
     def test_judge_rejects_small_calibration_set(self):
         data = {"items": [{"id": str(i), "label": "pass"} for i in range(49)]}

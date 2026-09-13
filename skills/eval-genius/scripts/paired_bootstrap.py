@@ -3,7 +3,9 @@
 
 Input: JSON {"items":[...]}, a JSON array, or JSONL. Records need a unique, non-empty
 string ``id`` and a finite numeric ``score``. Optional ``cluster`` values must be JSON
-scalars and must match between arms. Exit 0 on valid input and 1 on invalid input.
+scalars and must match between arms. The resample needs at least 4 independent units
+(distinct ``cluster`` values, or items when unclustered) and at least 200 reps.
+Exit 0 on valid input and 1 on invalid input.
 """
 import argparse
 import json
@@ -12,6 +14,20 @@ import random
 import statistics
 import sys
 
+# With U units drawn U times per rep, "every draw hits one unit" carries U^(1-U)
+# of the resample mass: 50% at U=2, 11% at U=3, 1.6% at U=4. Below 4 units the
+# 2.5% tails land inside the extreme atoms, so the interval is pinned near
+# [min, max] of the unit means and "excludes zero" just restates that they
+# share a sign.
+MIN_UNITS = 4
+# Below ~10 units the resample distribution is still visibly quantized; the
+# interval is computable but coarse, so the output carries a caution.
+WARN_UNITS = 10
+# A 95% nearest-rank interval needs enough reps for the 2.5%/97.5% tails to be
+# meaningful order statistics; at reps <= 40 the lower bound is the resample
+# minimum outright, and at reps 1 the interval is a single point that always
+# "excludes zero" for any nonzero mean.
+MIN_REPS = 200
 MAX_REPS = 100_000
 MAX_RESAMPLED_UNITS = 10_000_000
 
@@ -77,11 +93,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--a", required=True, help="baseline per-item file")
     parser.add_argument("--b", required=True, help="treatment per-item file")
-    parser.add_argument("--reps", type=int, default=5000)
+    parser.add_argument("--reps", type=int, default=5000,
+                        help=f"bootstrap repetitions ({MIN_REPS}-{MAX_REPS})")
     parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
-    if not 1 <= args.reps <= MAX_REPS:
-        fail(f"--reps must be between 1 and {MAX_REPS}.")
+    if not MIN_REPS <= args.reps <= MAX_REPS:
+        fail(f"--reps must be between {MIN_REPS} and {MAX_REPS}.")
 
     a_items, b_items = load(args.a), load(args.b)
     if set(a_items) != set(b_items):
@@ -104,9 +121,20 @@ def main():
     for item_id in ids:
         clusters.setdefault(a_items[item_id].get("cluster", item_id), []).append(deltas[item_id])
     units = list(clusters.values())
+    if len(units) < MIN_UNITS:
+        if len(units) < len(ids):
+            fail(f"only {len(units)} independent resampling units ({len(ids)} items in "
+                 f"{len(units)} cluster(s)): a cluster bootstrap needs at least {MIN_UNITS} "
+                 "units or the interval tails collapse onto extreme draws. Score items "
+                 "from more distinct parents/clusters; omit 'cluster' only when items "
+                 "are genuinely independent.")
+        fail(f"need at least {MIN_UNITS} paired items to compute a bootstrap interval.")
     if len(ids) * args.reps > MAX_RESAMPLED_UNITS:
         fail(f"requested bootstrap work is too large: {len(ids)} items x {args.reps} reps exceeds {MAX_RESAMPLED_UNITS} resampled item values. Reduce --reps or the evaluation set size.")
     unit_name = "clusters" if len(units) < len(ids) else "items"
+    if len(units) < WARN_UNITS:
+        print(f"caution: only {len(units)} resampling {unit_name}; the interval is "
+              "coarse, treat the verdict as weak evidence.", file=sys.stderr)
     rng = random.Random(args.seed)
     means = []
     for _ in range(args.reps):
@@ -127,6 +155,10 @@ def main():
         fail("mean delta overflowed; scores are too large.")
     improved = sum(delta > 0 for delta in deltas.values())
     regressed = sum(delta < 0 for delta in deltas.values())
+    if low == high:
+        print("caution: the interval is a single point (resampled deltas show no "
+              "variation); a zero-width interval cannot support a significance claim.",
+              file=sys.stderr)
     print(f"n {len(ids)} items, resampled over {len(units)} {unit_name}, {args.reps} reps, seed {args.seed}")
     print(f"mean delta (b - a) {mean:+.4f}   95% interval [{low:+.4f}, {high:+.4f}]")
     print(f"improved {improved}  regressed {regressed}  held {len(ids)-improved-regressed}")
