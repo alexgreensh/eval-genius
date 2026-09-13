@@ -35,11 +35,14 @@ silent PASS, so an archived pair can flip from scored to refused):
   - negative_control_id must match between the two manifests (a one-sided control
     is no longer honored).
   - duplicate item ids are refused; ids must be unique within each run.
+  - --baseline and --treatment must name different files; comparing a run to
+    itself is CANNOT-MEASURE, not a PASS.
   - any selected judged item requires non-empty prompt and model fingerprints in both
     manifests; deterministic-only comparisons do not require judge metadata.
 """
 import argparse
 import json
+import os
 import sys
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -54,8 +57,15 @@ def die(msg, code=CANNOT):
 
 
 def load(path, role):
+    # Identity of the file actually opened, captured from its descriptor inside the
+    # open() so a path swap during parsing cannot smuggle in a different file.
     try:
         with open(path, encoding="utf-8") as handle:
+            try:
+                stat = os.fstat(handle.fileno())
+                identity = (stat.st_dev, stat.st_ino)
+            except OSError:
+                identity = ("path", os.path.realpath(path))
             text = handle.read().strip()
     except FileNotFoundError:
         die(f"{role} file not found: {path}. Pass the per-item results JSON written by the scorer.")
@@ -78,6 +88,7 @@ def load(path, role):
         die(f"{role} manifest must be an object.")
     if not isinstance(data["items"], list):
         die(f"{role} items must be an array.")
+
     if "fixture_hash" not in data["manifest"]:
         die(f"{role} manifest has no 'fixture_hash'. Every run must record the fixture content hash; a run without one cannot be compared.")
     fixture_hash = data["manifest"]["fixture_hash"]
@@ -95,7 +106,7 @@ def load(path, role):
         if item_id in seen:
             die(f"{role} contains duplicate item id {item_id!r}. Duplicate ids make per-item comparison ambiguous.")
         seen.add(item_id)
-    return data
+    return data, identity
 
 
 def main():
@@ -116,7 +127,11 @@ def main():
     if not 0.0 <= args.error_budget <= 1.0:
         die("--error-budget must be between 0 and 1.")
 
-    base, treat = load(args.baseline, "baseline"), load(args.treatment, "treatment")
+    (base, base_id), (treat, treat_id) = load(args.baseline, "baseline"), load(args.treatment, "treatment")
+    # Compare the identities captured from the opened descriptors, never a restat of
+    # the user-controlled paths after parsing (a path swap mid-run would race it).
+    if base_id == treat_id:
+        die(f"--baseline and --treatment name the same file ({args.baseline}). A run compared to itself always passes; point the two arms at distinct runs.")
     baseline_hash = base["manifest"]["fixture_hash"]
     treatment_hash = treat["manifest"]["fixture_hash"]
     if baseline_hash != treatment_hash:

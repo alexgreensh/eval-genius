@@ -1,3 +1,4 @@
+import os
 import json
 import subprocess
 import sys
@@ -72,6 +73,62 @@ class CLITest(unittest.TestCase):
         result = self.cli("check_gate.py", "--baseline", a, "--treatment", b)
         self.assertEqual(result.returncode, 2)
         self.assertIn("no scored items remain", result.stderr)
+
+    def test_gate_same_file_is_cannot_measure(self):
+        items = [{"id": "bad", "verdict": "fail"}, {"id": "x", "verdict": "pass"}]
+        run = self.write("run.json", self.gate(items))
+        result = self.cli("check_gate.py", "--baseline", run, "--treatment", run)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("same file", result.stderr)
+        self.assertNotIn("Traceback", result.stdout + result.stderr)
+        aliased = self.dir / "run-alias.json"
+        try:
+            aliased.symlink_to(run.name)
+        except (OSError, NotImplementedError):
+            self.skipTest("symlinks not supported on this platform")
+        result = self.cli("check_gate.py", "--baseline", run, "--treatment", aliased)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("same file", result.stderr)
+
+    def test_gate_hardlink_to_same_file_is_cannot_measure(self):
+        items = [{"id": "bad", "verdict": "fail"}, {"id": "x", "verdict": "pass"}]
+        run = self.write("run.json", self.gate(items))
+        hardlinked = self.dir / "run-hardlink.json"
+        try:
+            os.link(run, hardlinked)
+        except (OSError, NotImplementedError):
+            self.skipTest("hardlinks not supported on this platform")
+        result = self.cli("check_gate.py", "--baseline", run, "--treatment", hardlinked)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("same file", result.stderr)
+
+    def test_gate_load_captures_opened_file_identity(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("check_gate", SCRIPTS / "check_gate.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        items = [{"id": "bad", "verdict": "fail"}, {"id": "x", "verdict": "pass"}]
+        run = self.write("run.json", self.gate(items))
+        _, identity = module.load(run, "baseline")
+        stat = os.stat(run)
+        self.assertEqual(identity, (stat.st_dev, stat.st_ino))
+        # a hardlink reports the same identity; a distinct file with identical
+        # content does not
+        hardlinked = self.dir / "run-hardlink.json"
+        try:
+            os.link(run, hardlinked)
+        except (OSError, NotImplementedError):
+            hardlinked = None
+        if hardlinked is not None:
+            self.assertEqual(module.load(hardlinked, "treatment")[1], identity)
+        twin = self.write("twin.json", self.gate(items))
+        self.assertNotEqual(module.load(twin, "treatment")[1], identity)
+
+    def test_gate_identical_content_distinct_files_passes(self):
+        items = [{"id": "bad", "verdict": "fail"}, {"id": "x", "verdict": "pass"}]
+        a, b = self.write("a.json", self.gate(items)), self.write("b.json", self.gate(items))
+        result = self.cli("check_gate.py", "--baseline", a, "--treatment", b)
+        self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_gate_fixture_mismatch(self):
         items = [{"id": "bad", "verdict": "fail"}, {"id": "x", "verdict": "pass"}]
@@ -385,7 +442,30 @@ class CLITest(unittest.TestCase):
         data = {"items": [{"id": str(i), "label": "pass" if i % 2 else "fail"}
                           for i in range(50)]}
         a, b = self.write("human.json", data), self.write("judge.json", data)
-        self.assertEqual(self.cli("judge_agreement.py", "--human", a, "--judge", b).returncode, 0)
+        result = self.cli("judge_agreement.py", "--human", a, "--judge", b)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("nan", result.stdout)
+        self.assertNotIn("undefined", result.stdout)
+
+    def test_judge_undefined_precision_is_spelled_out(self):
+        human = {"items": [{"id": str(i), "label": "pass" if i % 2 else "fail"}
+                           for i in range(50)]}
+        judge = {"items": [{"id": str(i), "label": "fail"} for i in range(50)]}
+        a, b = self.write("human.json", human), self.write("judge.json", judge)
+        result = self.cli("judge_agreement.py", "--human", a, "--judge", b)
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertIn("undefined (judge never predicts pass)", result.stdout)
+        self.assertNotIn("nan", result.stdout)
+
+    def test_judge_undefined_recall_is_spelled_out(self):
+        human = {"items": [{"id": str(i), "label": "fail"} for i in range(50)]}
+        judge = {"items": [{"id": str(i), "label": "pass" if i == 0 else "fail"}
+                           for i in range(50)]}
+        a, b = self.write("human.json", human), self.write("judge.json", judge)
+        result = self.cli("judge_agreement.py", "--human", a, "--judge", b)
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertIn("undefined (humans never label pass)", result.stdout)
+        self.assertNotIn("nan", result.stdout)
 
 
 if __name__ == "__main__":

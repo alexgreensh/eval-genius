@@ -117,15 +117,17 @@ def main():
     true_positive = sum(h == positive and j == positive for h, j in pairs)
     false_positive = sum(h != positive and j == positive for h, j in pairs)
     false_negative = sum(h == positive and j != positive for h, j in pairs)
-    precision = true_positive / (true_positive + false_positive) if true_positive + false_positive else float("nan")
-    recall = true_positive / (true_positive + false_negative) if true_positive + false_negative else float("nan")
+    precision = true_positive / (true_positive + false_positive) if true_positive + false_positive else None
+    recall = true_positive / (true_positive + false_negative) if true_positive + false_negative else None
+    precision_text = f"{precision:.3f}" if precision is not None else f"undefined (judge never predicts {positive})"
+    recall_text = f"{recall:.3f}" if recall is not None else f"undefined (humans never label {positive})"
     missing = (set(human) | set(judge)) - set(common)
     print(f"n {len(common)} shared items" + (f" ({len(missing)} unmatched ids ignored after coverage check)" if missing else ""))
     print(f"coverage  human {human_coverage:.3f}   judge {judge_coverage:.3f}")
     print(f"human positive rate {sum(h == positive for h, _ in pairs)/len(pairs):.3f}   judge positive rate {sum(j == positive for _, j in pairs)/len(pairs):.3f}")
     print(f"raw agreement {observed:.3f}   (inflated by class imbalance; do not use for the decision)")
     print(f"Cohen's kappa {coefficient:.3f}   floor {args.floor}")
-    print(f"judge PASS precision {precision:.3f}   recall {recall:.3f}   (vs human PASS)")
+    print(f"judge {positive.upper()} precision {precision_text}   recall {recall_text}   (vs human {positive.upper()})")
     disagreements = [item_id for item_id, pair in zip(common, pairs) if pair[0] != pair[1]]
     if disagreements:
         print("disagreements (first 20): " + ", ".join(disagreements[:20]))
