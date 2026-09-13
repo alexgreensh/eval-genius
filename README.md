@@ -11,6 +11,9 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/alexgreensh/eval-genius/actions/workflows/test.yml"><img src="https://github.com/alexgreensh/eval-genius/actions/workflows/test.yml/badge.svg" alt="Tests"></a>
+  <img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Falexgreensh%2Feval-genius%2Fmain%2F.claude-plugin%2Fplugin.json&query=%24.version&label=version&color=8A5CF6&prefix=v" alt="Version">
+  <img src="https://img.shields.io/badge/tested%20on-macOS%20%7C%20Linux%20%7C%20Windows-2ea44f" alt="Tested on macOS, Linux, Windows">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue" alt="License: Apache 2.0"></a>
   <img src="https://img.shields.io/badge/scripts-stdlib%20Python%20·%20zero%20deps-2ea44f" alt="Stdlib Python, zero dependencies">
 </p>
@@ -33,9 +36,7 @@
 
 ---
 
-### Everyone says "you need evals." Almost nobody says *when*.
-
-## The problem
+## Everyone says "you need evals." Almost nobody says *when*.
 
 <p align="center"><img src="assets/img/problem.png" alt="Eval Genius at a crossroads of floating paths, unsure which way the evals go" width="100%"></p>
 
@@ -56,6 +57,17 @@ It is not a course you have to read first. You describe where you are, in plain 
 There are two doors in, and neither asks for eval vocabulary. If you can already say what "good" looks like, it works top-down from that promise. If all you have is "the outputs are sometimes wrong and I don't know what to measure," it works bottom-up instead: it reads your real bad outputs with you, names the error categories, and turns each one into something measurable. Same discipline, entered from wherever you actually stand.
 
 It is tool-agnostic and dependency-free: a `SKILL.md` plus a few standard-library Python scripts. It runs in Claude Code, Codex, and Droid, or any agent that loads skills, or from your terminal on its own.
+
+## See it in 20 seconds
+
+A bill-splitting agent sounds sure, and is quietly wrong. Eval Genius makes it earn the word *"ready."*
+
+<table>
+<tr>
+<td width="50%" valign="top"><img src="assets/img/eg-without.gif" alt="Without Eval Genius: the agent confidently splits the bill to $195.76 and says you're good to go, overcharging the group by $5.21 while nobody checks"></td>
+<td width="50%" valign="top"><img src="assets/img/eg-with.gif" alt="With Eval Genius: it first defines what ready means, checks the promise against 20 known bills, fails 2 (discounts and shared dishes), fixes them, then passes 20 of 20 and is declared ready for those 20 bills"></td>
+</tr>
+</table>
 
 ## What you can ask it
 
@@ -131,7 +143,7 @@ When this skill's own description changes, that suite is the paired diff that sa
 
 ## Install
 
-Eval Genius is a Claude Code plugin. Add the marketplace once, then install:
+Eval Genius runs in any agent that loads a `SKILL.md` — Claude Code, Codex, Droid, and more. In Claude Code it installs as a plugin: add the marketplace once, then install:
 
 ```bash
 # in Claude Code
@@ -162,6 +174,13 @@ On Windows, use `py -3` instead of `python3` if that is how Python is installed.
 ## Curious about the reasoning?
 
 The full method behind the skill, in one plain-language document, lives in **[METHODOLOGY.md](METHODOLOGY.md)**. You do not need it to use the skill; it is there if you want to see the thinking.
+
+## More from Alex
+
+- **[Token Optimizer](https://github.com/alexgreensh/token-optimizer)** — more real work per token and a smaller bill: find the context your AI coding assistant burns, cut it, and survive compaction, with a live dashboard of where every token and dollar goes.
+- **[Outsourcerer](https://github.com/alexgreensh/outsourcerer)** — route each coding job to the best-value model across Claude, Codex, Cursor, Devin, Gemini and local, carry your setup with it, and track every cost.
+- **[Attention Span](https://github.com/alexgreensh/attention-span)** — ADHD-friendly output styles that make your agent answer first and stay skimmable, so you pay attention, not tokens.
+- **[Repo Forensics](https://github.com/alexgreensh/repo-forensics)** — vet any repo, skill, plugin, or MCP server before it touches your machine; fully offline, nothing leaves your box.
 
 ---
 
