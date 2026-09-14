@@ -19,6 +19,24 @@ un-audited.
 - **Sample fifty items and grade them by hand** before trusting any source, including
   a well-known public one. This is how the label-error ceiling is found.
 
+## Synthetic-data admission
+
+Synthetic items earn their place by naming the real failure mode each one
+represents; "more coverage" is not a failure mode. Admission per item:
+
+- the real failure mode or stratum it stands in for, written into the manifest;
+- generator, prompt, model, and seed pinned, so the item can be regenerated
+  and audited;
+- duplication and leakage checks against the existing set; a synthetic item
+  that paraphrases a real one double-counts the stratum;
+- review against real traces before acceptance, so the item resembles the
+  failures that occur, not the ones the generator finds easy to make.
+
+And the cap on what synthetic evidence supports: **synthetic-only items cap
+claim strength.** A public accuracy or robustness claim needs a real-traffic
+holdout behind it; a number earned entirely on generated items is reported as
+a synthetic-fixture result, never as field performance.
+
 ## Labeling
 
 1. Write the **labeling guideline** first: what counts, what does not, the edge cases,
@@ -153,5 +171,5 @@ compare two runs (`06-harness-design.md`).
 ## Output of this file
 
 A versioned fixture with a manifest, a labeling guideline with measured agreement, a
-negative-space slice, held-out splits with a recorded seed, and a contamination check
-result.
+negative-space slice, held-out splits with a recorded seed, a contamination check
+result, and synthetic items admitted against named real failure modes.

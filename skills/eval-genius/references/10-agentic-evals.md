@@ -50,6 +50,29 @@ production agent uses pass^k with a pre-registered k.
 - Per-trial timeout is pre-registered and usually counts as a failure, because a user
   would experience it as one. Say which.
 
+## Environment-contract preflight: test the world before the agent
+
+The environment is part of the instrument. Prove it before any subject run:
+
+- **Seed/reset determinism.** Same seed, identical world: run the reset twice
+  and diff the state. A world that drifts between resets makes trials
+  incomparable.
+- **Tool contracts.** Each tool behaves as specified, including its failure
+  modes; a tool that silently succeeds hands the agent a shortcut it did not
+  earn.
+- **Reachable success states.** The goal state is achievable from the seed.
+- **No shortcut paths.** No route reaches the goal state without doing the
+  task: an unguarded file, a default credential, a world that starts already
+  solved.
+- **Known-good passes, known-bad fails.** A reference trajectory passes and a
+  deliberately broken one fails, in this environment, before the subject is
+  ever run.
+
+An environment that fails any of these ends the run CANNOT-MEASURE; the
+verdict belongs to the world, not the agent. The discipline is the one
+OSWorld-style seeded, resettable environments encode: borrow the
+reset-and-success-check contract, not their worlds.
+
 ## The harness is a lever
 
 Two agents on the same model with different scaffolds score differently. When the
@@ -72,9 +95,28 @@ pinned model, pinned persona script, pinned seed. A simulated user that changes
 between runs is a control that moved. Grade the outcome state, not the conversation's
 tone, unless tone is the promise.
 
+The unit of measurement is the session, not the turn. Start from whether the
+whole conversation achieved the intended user outcome; per-turn scoring
+atomizes the dialogue and rewards local polish over task completion. A
+turn-local claim ("responses are polite") may be graded per turn; a
+session-success claim may not be assembled from isolated turns.
+
+Fixture integrity for a session item:
+
+- the full ordered transcript, every turn, nothing summarized away;
+- the stop/end reason and the terminal state it produced;
+- the intended outcome, written before the run;
+- the user or scenario stratum the session was drawn from;
+- the tool events, aligned to the turns that issued them.
+
+Stratified coverage comes before any aggregate session claim: "success across
+sessions" means across the strata the fixture declares, and a claim measured
+in one stratum says nothing about another.
+
 ## Output of this file
 
 An agent eval with deterministic outcome grading on end state, separate trajectory
 metrics, pass^k beside pass@k with pre-registered k, isolated per-trial sandboxes,
-infrastructure failures recorded as CANNOT-MEASURE, and a frozen scaffold when the
-model is the lever.
+infrastructure failures recorded as CANNOT-MEASURE, a frozen scaffold when the
+model is the lever, a proven environment contract before the subject runs, and
+session claims graded at the session, not the turn.
