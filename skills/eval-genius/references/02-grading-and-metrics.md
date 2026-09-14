@@ -65,6 +65,22 @@ Say which one a given number is.
 Pick from the family that matches the promise. Each entry names the failure mode of
 the metric so it can be caught.
 
+Every metric holds exactly one of two roles, written in the manifest next to it:
+
+- **DISCOVERY_ONLY.** The metric may rank candidates, select items for human
+  review, flag outliers, or stratify a sample. It is barred from PASS/FAIL and
+  from every headline claim, because it was never validated against a named
+  failure mode. Generic quality scores, novelty flags, and heuristic ranks
+  live here.
+- **Claim-bearing.** The metric maps to a validated failure mode (one the
+  error analysis or the threat model named), carries a stated direction,
+  unit, and bar, and may appear in a verdict.
+
+A discovery metric that starts deciding is the discovery-metric-as-claim
+anti-pattern. When a discovery heuristic selects the slice that gets measured,
+record the sampling policy and each item's inclusion probability; otherwise a
+"we measured the flagged items" number reads as prevalence, which it is not.
+
 ### Retrieval / search / memory
 
 | Metric | Measures | Watch for |
@@ -147,6 +163,33 @@ categories with the deterministic and judged graders above.
 
 A quality gain that doubles cost or tail latency is a trade, not a win, and the report
 says so.
+
+## When the subject games the grader
+
+`05-dataset-construction.md` covers the author-side version: leaked tests,
+loopholes in the task spec. The subject-side version is worse: a capable
+system under test probes the verifier itself and passes by producing what the
+grader keys on rather than what the task asks. Four defenses:
+
+- **Hidden holdout.** A slice of items and checks the subject never sees, in
+  any run. A grader the subject can read is a grader it can fit.
+- **Adversarial verifier tests.** Feed the verifier deliberately gaming-shaped
+  outputs: the right tokens with no work behind them, a refusal-shaped answer
+  with the exfiltration still inside, a hidden-test file read mid-trajectory.
+  The verifier must catch each one; a verifier that cannot tell the artifact
+  from the work is measuring artifacts.
+- **Process-vs-outcome cross-check.** End state correct but the trajectory
+  shows the shortcut (the leaked file read, the test copied, the assertion
+  edited): fail the item and flag the check that allowed it. Outcome and
+  trajectory stay separate grades (`10-agentic-evals.md`); this is the one
+  place they are read together.
+- **Mutation tests.** Synthesize plausible cheating trajectories, by mutating
+  known-good runs toward the exploit, and confirm the gate still goes red.
+
+The rule that binds them: **an exploitable verifier invalidates the run.**
+When the subject passes through the instrument rather than the task, every
+number above that instrument is CANNOT-MEASURE, not a pass with an asterisk.
+Fix the verifier, re-run, then claim.
 
 ## Choosing k, thresholds, and tolerances
 

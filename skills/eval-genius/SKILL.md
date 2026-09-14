@@ -152,7 +152,9 @@ Retire what fails its bar, in writing. Template: `templates/eval-report.md`.
 - **Rubric-author bias.** Whoever built the system also wrote the rubric, alone.
 - **Run until green.** Repeating a noisy eval until one run passes.
 - **Gate-set tuning / overfitting.** Iterating on the held-out items the gate uses.
-- **Grader gaming.** The system passing by loophole or leaked test; that pass is a task-spec bug.
+- **Grader gaming.** The subject passing by loophole, leaked test, or an exploited verifier; a gameable instrument makes the run CANNOT-MEASURE (`references/02-grading-and-metrics.md`).
+- **Discovery metric as claim.** A ranking or outlier heuristic promoted to PASS/FAIL; discovery metrics never gate.
+- **LLM-first taxonomy.** Failure classes proposed by a model before a human open-codes the traces; prevalence and completeness claims on it are CANNOT-MEASURE.
 - **Safety-score blending.** One number across attack classes; report per class, and a safety claim with no audit trail is CANNOT-MEASURE.
 - **Unverifiable output.** An eval built on outputs nobody can check without redoing the work; fix the evidence surface first.
 - Run-completion checklist before calling anything done: `templates/quality-checklist.md`.

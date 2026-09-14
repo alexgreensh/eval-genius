@@ -51,6 +51,30 @@ Work the whole loop in `templates/error-analysis-log.md`: annotate traces, roll 
 ranked categories, and turn each category into a promise. It is spreadsheet-shaped so a
 domain expert can fill it with no eval vocabulary.
 
+## Taxonomy provenance: human first, machine second
+
+Open coding is a human job first. A domain expert reads the first 30 to 50
+traces and names the failures in free text, no model in the loop. Only after
+that seed exists may an LLM help: proposing clusters over the human's notes,
+normalizing wording, mapping later annotations into the existing classes,
+always under human review. The machine accelerates the taxonomy; it does not
+author it.
+
+Record the provenance so the taxonomy can be audited:
+
+- the open-coded seed count and the domain owner who produced it;
+- the raw notes, kept verbatim;
+- each proposed machine cluster and the human acceptance or edit;
+- a taxonomy version, bumped whenever a class changes;
+- an **OTHER / NEW_FAILURE** escape hatch on every later annotation, so a
+  failure that fits no class is captured, never forced into one.
+
+An LLM-first or LLM-only taxonomy cannot support completeness or prevalence
+claims: the classes were found by a model with its own blind spots, and "the
+model saw no other failure" is not evidence none exists. Claims of the form
+"these classes cover the failures" or "class X is N% of failures" resolve to
+CANNOT-MEASURE until a human-open-coded seed exists.
+
 ## Two things the loop gives you for free
 
 - **Writing the eval sharpens the definition.** You will discover that your intuition for
