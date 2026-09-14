@@ -77,10 +77,10 @@ number that has survived an attack is worth more than one that has only been adm
 
 `templates/eval-report.md` carries the structure: pre-registration quoted, manifest
 reference, per-layer results with intervals, per-item flip summary, cost and latency,
-caveats, tier labels, decision, and what happens next.
+the per-family scorecard, caveats, tier labels, decision, and what happens next.
 
 ## Output of this file
 
 A report where the reader can find the bar before the result, the tier of every
-number, the layers separated, the caveats that weaken the claim, and a decision that
-follows from the pre-registered rule.
+number, the layers and families separated, the caveats that weaken the claim, and a
+decision that follows from the pre-registered rule.

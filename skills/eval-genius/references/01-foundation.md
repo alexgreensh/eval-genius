@@ -134,4 +134,5 @@ off-the-shelf configuration), and the report says the comparison is against a fl
 ## Output of this file
 
 A filled `templates/preregistration.md` with promise, variables, placement, weight, bar,
-falsifier, outlier rule, and the named baseline. Nothing downstream starts without it.
+falsifier, outlier rule, and the named baseline, preceded by a verification-surface
+map proving the output can be checked at all. Nothing downstream starts without it.

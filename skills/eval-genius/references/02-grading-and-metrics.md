@@ -200,5 +200,6 @@ seconds is the bar. Thresholds invented in the abstract get gamed by the abstrac
 ## Output of this file
 
 A grader plan: which checks are deterministic (and their normalization rule), which
-items go to the judged layer and why, the metric per outcome with direction and unit,
-and cost/latency recorded next to quality.
+items go to the judged layer and why, the metric per outcome with direction, unit,
+and role (DISCOVERY_ONLY or claim-bearing), a verifier hardened against subject
+gaming, and cost/latency recorded next to quality.

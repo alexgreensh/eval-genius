@@ -120,6 +120,7 @@ the baseline, and the bar.
 
 ## Output of this file
 
-A yes/no on whether an eval is needed, the stage it belongs to, the instrument for that
-stage, the grader type and metric family, and a baseline run with per-item results.
-Nothing downstream needs more than that to start.
+A yes/no on whether an eval is needed (FIX_NOW / MEASURE / CANNOT-MEASURE), the
+stage it belongs to, the instrument for that stage, the grader type and metric
+family, and a baseline run with per-item results. Nothing downstream needs more
+than that to start.

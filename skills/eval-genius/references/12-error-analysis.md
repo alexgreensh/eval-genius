@@ -112,6 +112,7 @@ first-timer finds the promises worth putting through it.
 
 ## Output of this file
 
-A short, prioritized list of named error categories drawn from real traces, each with a
-per-error count from the current system and each restated as a promise ready for
-`01-foundation.md`. That list is the agenda for every eval that follows.
+A short, prioritized list of named error categories drawn from real traces with
+recorded human-first provenance, each with a per-error count from the current system
+and each restated as a promise ready for `01-foundation.md`. That list is the agenda
+for every eval that follows.

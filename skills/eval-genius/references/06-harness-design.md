@@ -205,4 +205,5 @@ further eval spend.
 
 A harness where fixture, runner, scorer, and reporter are separate; per-item records;
 a three-way exit; fingerprint refusal; a liveness assertion; a negative control; a
-run manifest; and a fresh-build run somewhere in the schedule.
+run manifest; a fresh-build run somewhere in the schedule; and a measured
+verification burden on the outputs.
