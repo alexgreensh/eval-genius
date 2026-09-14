@@ -12,7 +12,6 @@ An eval is a claim you are willing to defend under hostile audit. You measure to
 the right to say "this is better" and have it hold when someone sharp pushes back.
 Behave like a measurement engineer: state the promise, fix the bar before looking, hold
 everything else constant, distrust the instrument first, report the number that hurts.
-Assume the user may be starting from zero; plain language first, jargon when it earns it.
 
 ---
 
@@ -21,12 +20,9 @@ Assume the user may be starting from zero; plain language first, jargon when it 
 Three questions decide it (`references/00-start-here.md`): does the output vary? will it
 change again, and would a quiet regression cost something? is a decision or public claim
 coming? No to all: a spot check, stop. Yes to any: an eval, sized to the project's stage.
-
-Two checks sit in front of the questions. Preflight: can a domain expert verify
-this output without redoing the work? No: CANNOT-MEASURE, and the fix is the
-evidence surface, not the grader (`references/01-foundation.md`). Triage: an
-obvious, frequent defect gets fixed now, not measured; the decision record is
-FIX_NOW / MEASURE / CANNOT-MEASURE (`references/00-start-here.md`).
+Two checks sit in front. Preflight: a domain expert can verify the output without
+redoing the work, else CANNOT-MEASURE (`references/01-foundation.md`). Triage: a
+known, frequent defect is fixed now, not measured (FIX_NOW / MEASURE / CANNOT-MEASURE).
 
 | Stage the user is at | Instrument | Smallest useful version |
 |---|---|---|
@@ -65,11 +61,10 @@ Identify the job, then load only that reference. Every job still passes through 
 
 Templates in `templates/` are copied into the project, never edited in place. Scripts in
 `scripts/` are stdlib-only `--help` CLIs, nonzero on failure: `check_gate.py` (per-item
-treatment-vs-baseline diff, exits 0/1/2 = PASS/FAIL/CANNOT-MEASURE, refuses mismatched
-fingerprints), `paired_bootstrap.py` (paired bootstrap delta interval, cluster-aware),
-`judge_agreement.py` (kappa + PASS precision/recall vs humans), `rate_interval.py` (Wilson
-interval for a single rate), `hash_fixture.py` (canonical fixture hash). Match effort to
-stakes; load references on demand, not all at once.
+diff, exits 0/1/2 = PASS/FAIL/CANNOT-MEASURE, refuses fingerprint mismatch),
+`paired_bootstrap.py` (paired delta interval, cluster-aware), `judge_agreement.py`
+(kappa + PASS precision/recall vs humans), `rate_interval.py` (Wilson interval),
+`hash_fixture.py` (fixture hash). Load references on demand, not all at once.
 
 ---
 
@@ -79,32 +74,29 @@ Copy `templates/preregistration.md` next to the fixture and fill it before touch
 data or code. A first-timer fills promise, lever, baseline, and bar; the rest follows.
 
 1. **Promise.** One plain sentence: what does the system promise, what is "better"?
-2. **Variables.** Levers (what changes), outcomes (what is watched), controls (what is
-   frozen). One lever per comparison; an unclassifiable variable means stop.
+2. **Variables.** Levers, outcomes, controls; one lever per comparison.
 3. **Placement.** A decision point, a risky seam, or a public claim; elsewhere, a spot
    check or nothing.
 4. **Weight.** Spot check, eval, benchmark, or monitor (Step 0 table).
 5. **Bar.** Threshold, falsifier, outlier rule. Written before any run.
 
-Done when all five fields are filled and a baseline is named.
-
 ## Step 2: Choose the grader (deterministic first)
 
 Push every check that *can* be code-graded down to code: exact match, regex, schema,
 test suite, threshold. Free text gets decomposed (required facts present, forbidden
-content absent, format) before any judge sees it. Reserve a model or human judge for
-the edge no assertion captures. 80% deterministic / 20% judged is trusted; 100% judged
-is an opinion with error bars. Report layers separately, never one blended number. A
-judge is an instrument: calibrate against human labels, blind it, randomize order, pin
-model and prompt hash (`references/03-judge-calibration.md`).
+content absent, format) before any judge sees it; reserve the judge for the residue.
+80% deterministic / 20% judged is trusted; 100% judged is an opinion with error bars.
+Report layers separately, never one blended number. A judge is an instrument:
+calibrate against human labels, blind it, randomize order, pin model and prompt hash
+(`references/03-judge-calibration.md`).
 
 ## Step 3: Build or adopt
 
 Search before building; an established benchmark buys ground truth nobody in the room
 cooked. Build custom the moment the public one rewards a proxy the system does not
-target, reusing public plumbing. Score candidates on `templates/benchmark-assessment-scorecard.md`:
-what it rewards, contamination, label-error ceiling, whether it exercises *this*
-mechanism, whether it is maintained.
+target, reusing public plumbing. Score candidates on
+`templates/benchmark-assessment-scorecard.md`: what it rewards, contamination,
+label-error ceiling, mechanism fit, maintenance.
 
 ## Step 4: Run under hard rules (a run that breaks one is not a result)
 
@@ -117,9 +109,7 @@ mechanism, whether it is maintained.
 - **Repeat and show spread.** Noise wider than the effect means no result yet.
 - **Verify the verifier.** A known-bad case must go red before green is trusted.
 
-## Step 5: Read the result (in this order)
-
-Full walk in `references/11-reading-results.md`; each check gates the next.
+## Step 5: Read the result (`references/11-reading-results.md`, in order)
 
 1. **Did it run?** Exit code before score; negative control failed.
 2. **Against the written bar**, not against hope. Above: candidate win. Below the
@@ -127,15 +117,14 @@ Full walk in `references/11-reading-results.md`; each check gates the next.
 3. **Bigger than noise?** Paired interval on the delta (`paired_bootstrap.py`);
    interval includes zero means "not established", never "no effect".
 4. **Items, not averages.** Read regressions first; reproduce one flip by hand.
-5. **Surprised?** A 0%, a 99%, a thirty-point jump is a harness bug until proven
-   otherwise. Never tune the system against a suspect gauge; fix the gauge or stop.
+5. **Surprised?** A 0%, a 99%, a thirty-point jump is a harness bug until proven otherwise; fix the gauge, never the system, or stop.
 6. **Layers and cost separately.** A win that doubled cost is a trade.
 
 ## Step 6: Report honestly
-Numbers are claims with tiers, measured / estimated / aspirational, never summed across
-tiers. Three sentences minimum: the bar and whether it was met; the delta with interval
-and flip counts; the caveat that most weakens the claim. Say when a benchmark is self-run.
-Retire what fails its bar, in writing. Template: `templates/eval-report.md`.
+Numbers are claims with tiers, measured / estimated / aspirational, never summed. Three
+sentences minimum: the bar and whether it was met; the delta with interval and flips; the
+caveat that most weakens the claim. Self-run is said; failures retire in writing
+(`templates/eval-report.md`).
 
 ---
 
