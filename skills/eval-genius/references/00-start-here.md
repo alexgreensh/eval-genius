@@ -36,6 +36,21 @@ No to all three: spot check by hand and move on. Yes to any: an eval, sized to t
 stakes. Most projects reach "yes" the first time a prompt change breaks something
 that used to work.
 
+## Is an eval even the right spend?
+
+Before building the instrument, check that the problem wants a measurement and
+not a repair. An obvious, frequent defect you already understand gets fixed
+now, not eval'd: measuring what you already know spends budget with no decision
+attached. Automate only when the behavior has clear good and bad examples,
+stable criteria for telling them apart, and recurrence or regression risk worth
+guarding. Record the call in one line:
+
+- **FIX_NOW**: the defect is known, frequent, and cheap to repair; fix it and
+  move on.
+- **MEASURE**: the criteria hold and the behavior recurs; build the eval.
+- **CANNOT-MEASURE**: no stable criteria, or no verifiable evidence surface
+  (`01-foundation.md`); fix the surface or the product first.
+
 ## Where evals sit in a development lifecycle
 
 | Stage | What you are doing | Instrument | Smallest useful version | Fine to skip when |

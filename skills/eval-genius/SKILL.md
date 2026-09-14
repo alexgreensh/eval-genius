@@ -22,6 +22,12 @@ Three questions decide it (`references/00-start-here.md`): does the output vary?
 change again, and would a quiet regression cost something? is a decision or public claim
 coming? No to all: a spot check, stop. Yes to any: an eval, sized to the project's stage.
 
+Two checks sit in front of the questions. Preflight: can a domain expert verify
+this output without redoing the work? No: CANNOT-MEASURE, and the fix is the
+evidence surface, not the grader (`references/01-foundation.md`). Triage: an
+obvious, frequent defect gets fixed now, not measured; the decision record is
+FIX_NOW / MEASURE / CANNOT-MEASURE (`references/00-start-here.md`).
+
 | Stage the user is at | Instrument | Smallest useful version |
 |---|---|---|
 | Exploring prompts and models | Spot check | 10 inputs, eyeball |
@@ -148,4 +154,5 @@ Retire what fails its bar, in writing. Template: `templates/eval-report.md`.
 - **Gate-set tuning / overfitting.** Iterating on the held-out items the gate uses.
 - **Grader gaming.** The system passing by loophole or leaked test; that pass is a task-spec bug.
 - **Safety-score blending.** One number across attack classes; report per class, and a safety claim with no audit trail is CANNOT-MEASURE.
+- **Unverifiable output.** An eval built on outputs nobody can check without redoing the work; fix the evidence surface first.
 - Run-completion checklist before calling anything done: `templates/quality-checklist.md`.

@@ -16,6 +16,27 @@ The metric comes *from* the promise. When the promise cannot be stated, measurem
 premature. When two people state different promises, that disagreement is the first
 finding, and it costs nothing to resolve now versus a month of measuring the wrong thing.
 
+## The evaluability preflight
+
+One question gates everything below: **can a domain expert verify this output
+without redoing the work?** If the honest answer is no, the outcome is
+CANNOT-MEASURE, and the fix is an evidence surface, not a better grader. Before
+the eval exists, the system must emit:
+
+- provenance per claim: which source, call, or step produced it;
+- stated assumptions and intermediate artifacts, not only the final answer;
+- a contradiction / open-question list the system already knows about;
+- an explicit "could not verify" list, so silence is never read as clean.
+
+Then draw the verification-surface map before any eval plan, one row per claim
+the output makes: the claim, the trusted reference or intermediate artifact it
+is checked against, the checker (code, calibrated judge, or human), and the
+unresolved state when checking is impossible. A row with no artifact and no
+checker is an unverifiable claim and stays CANNOT-MEASURE until the surface
+exists. This is why some "build me an eval" asks correctly end as product
+redesigns: there is nothing to measure until the system emits something
+checkable.
+
 ## 2. Name the variables
 
 Every measurement is a small experiment with three kinds of variable:

@@ -183,6 +183,24 @@ number is an anecdote.
 
 Then, and only then, the per-item diff and the aggregate.
 
+## Verification burden, measured
+
+The eval's cost includes the human side: how hard the outputs are to check at
+all (`01-foundation.md`). Measure the burden on a sampled slice, per item:
+
+- **Evidence steps.** Clicks or hops to reach the artifact that verifies a
+  claim.
+- **Time-to-verify** for a domain expert on sampled outputs.
+- **% claims with direct provenance**: an artifact a checker can follow
+  without interpretation.
+- **% requiring task replay**: verifying means redoing the work.
+
+These are product-process signals, not answer scores. A rising burden means
+the evidence surface is degrading; the response is a redesign of what the
+system emits, not a softer rubric. Track them next to cost and latency, and a
+crossed pre-registered burden bar triggers a surface redesign before any
+further eval spend.
+
 ## Output of this file
 
 A harness where fixture, runner, scorer, and reporter are separate; per-item records;
