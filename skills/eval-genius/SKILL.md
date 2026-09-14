@@ -54,6 +54,7 @@ Identify the job, then load only that reference. Every job still passes through 
 | Evaluate an agent, tool use, or multi-turn task | `references/10-agentic-evals.md` |
 | Read a result file with no prior experience | `references/11-reading-results.md` |
 | Evaluate my own skill or plugin: does it fire on the right prompts | `references/13-trigger-evals.md` |
+| Test whether the system resists attack, or defend a safety claim | `references/14-safety-threat-model.md` |
 | Follow a full worked example, start to finish | `references/walkthroughs/` |
 
 Templates in `templates/` are copied into the project, never edited in place. Scripts in
@@ -146,4 +147,5 @@ Retire what fails its bar, in writing. Template: `templates/eval-report.md`.
 - **Run until green.** Repeating a noisy eval until one run passes.
 - **Gate-set tuning / overfitting.** Iterating on the held-out items the gate uses.
 - **Grader gaming.** The system passing by loophole or leaked test; that pass is a task-spec bug.
+- **Safety-score blending.** One number across attack classes; report per class, and a safety claim with no audit trail is CANNOT-MEASURE.
 - Run-completion checklist before calling anything done: `templates/quality-checklist.md`.
