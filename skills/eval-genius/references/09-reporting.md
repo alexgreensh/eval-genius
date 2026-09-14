@@ -27,6 +27,12 @@ Deterministic pass rate and judged score are reported in separate lines with sep
 denominators, intervals, and n. Cost and latency get their own lines. A blended
 "quality score" is a refusal to say which half moved.
 
+The same rule runs per family: one row per capability family in the report
+scorecard (`templates/eval-report.md`), each carrying quality, cost per pass,
+p95 latency, and whether its sample was adequate to say anything at all. An
+aggregate gain that hides a collapsed family is the blended-score failure one
+level up.
+
 ## Disclose what weakens the number
 
 - The conservative setup, older snapshot, small sample, or subset used.

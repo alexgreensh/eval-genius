@@ -30,6 +30,11 @@ Negative control: failed on both runs (yes / no). If no, stop here: CANNOT-MEASU
 
 **Per-stratum** (if stratified): one row per stratum for the primary metric.
 
+**Per-family regression scorecard** (required: an aggregate gain must not hide
+a collapsed capability family)
+| Family | Quality | Cost per pass | p95 latency | Sample adequate (y/n) |
+|---|---|---|---|---|
+
 ## 4. Noise floor
 Repeated runs on the same commit: k runs, spread of the primary metric.
 

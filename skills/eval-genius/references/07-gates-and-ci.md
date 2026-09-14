@@ -125,9 +125,12 @@ score on the system. Two consequences:
   manufactures a movement nobody caused.
 - **A run that silently returns partial looks like a verdict.** If the missing
   items read as failures it looks like a regression; if the aborted tail is
-  dropped it can even read green. Both are the green-by-crash family below: the
-  pipeline got a number and believed it. The same-item-ids and error-budget
-  checks exist to refuse exactly this comparison.
+  dropped it can even read green. A rate-limited or cost-capped suite that
+  reads its truncated tail as failures is a silent crash in a regression's
+  clothes: CANNOT-MEASURE, never FAIL, and out of the trend chart. Both are
+  the green-by-crash family below: the pipeline got a number and believed it.
+  The same-item-ids and error-budget checks exist to refuse exactly this
+  comparison.
 
 Treat the cost ceiling as a pre-registered budget, not an afterthought. It is
 written in the pre-registration with the other bars ("abort the run past $X"),
