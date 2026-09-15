@@ -82,6 +82,7 @@ Real questions, answered from wherever you actually are:
 - *"I got 34 out of 40, is that good?"*
 - *"Is this 3-point gain real, or noise?"*
 - *"We swapped the agent's scaffold. Is it better now?"*
+- *"Can my agent be tricked into leaking a secret or calling a tool it shouldn't?"*
 - *"Can we put a number in the launch post?"*
 - *"Calibrate my LLM judge against some human labels."*
 
@@ -97,6 +98,7 @@ It walks the whole path, and meets you at any point on it, including the start:
 - **Starts from your failures when there is no promise yet.** Real bad outputs get read by hand, clustered into named error categories, and each category becomes the thing to measure.
 - **Picks the eval:** what to measure, which grader (code first, a judge only where no assertion works), which metric, how many examples, adopt a public benchmark or build your own.
 - **Builds and gates it:** fixture, runner, scorer, reporter, a bar written before the run, and a CI gate that ends in PASS, FAIL, or CANNOT-MEASURE and only compares two runs when they truly measured the same thing, the same way.
+- **Tests whether it holds up under attack:** adversarial cases, prompt injection, unsafe tool calls, data exfiltration, graded by code on what actually happened and reported per attack type, never hidden inside one "safety score."
 - **Reads the result with you:** against the bar you wrote, with noise bounds, per-item diffs, and a harness-bug check before any surprising number is believed.
 - **Writes it up honestly,** with caveats, tiers, and the comparison rule stated out loud.
 - **Refuses the shortcuts** that produce pretty lies: bars moved after the fact, blended scores, run-until-green, and judges nobody calibrated.
