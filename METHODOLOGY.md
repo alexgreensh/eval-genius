@@ -29,6 +29,7 @@ This is the part everyone skips. Don't.
 - **Name your variables.** Levers (what you change), outcomes (what you watch), controls (what you hold constant). If you can't say which is which, you'll mistake drift or noise for a real effect.
 - **Match the metric to the task.** Retrieval wants recall/precision/MRR; classification wants precision/recall/F1; generation wants faithfulness or a judged rubric; agentic work wants task success plus trajectory quality. Pick the one whose failure mode is the failure you care about.
 - **Treat cost and latency as first-class outcomes**, not afterthoughts. Track tokens, p50/p95 latency, and cost-per-pass alongside quality. A quality win that triples cost is a trade, not a free win.
+- **Check it can even be verified.** Before designing anything, ask whether a domain expert could confirm the output is right *without redoing the work themselves*. If not, the honest answer is "can't measure yet," and the fix is usually the product, make it show its sources, assumptions, and an explicit "couldn't verify" list, not a cleverer grader.
 
 ### Where a measurement belongs, and how heavy
 
@@ -59,6 +60,8 @@ Name which *kind* of eval you're building. This choice drives everything downstr
 **Governing rule: push everything you can down to deterministic.** Reserve model or human judgment for the genuine judgment edge, the part no assertion can capture.
 
 **Corollary: don't blend layers into one number.** Report the deterministic pass rate and the judged quality score *separately*. A blended score hides which half moved.
+
+**Corollary: separate the metrics that *decide* from the ones that only *explore*.** A generic quality score is fine for ranking candidates or picking which outputs a human should review; it is not allowed to declare pass/fail. A number earns a verdict only once it's tied to a specific failure you've checked it actually catches.
 
 ---
 
@@ -111,7 +114,7 @@ Write, *before* seeing any number: the **baseline**, the **acceptance criteria**
 - **Split dev from held-out test, and never tune on the gate set.** Tuning against your test set turns the gate green by teaching to it.
 - **Cover the negative space.** Verified-absent negatives, near-miss distractors, refusals that *should* fire. A benchmark that only walks the happy path has tested half a promise.
 - **Guard against contamination.** Prefer a held-out private set; check for leakage (n-gram overlap, canary strings, provenance); rotate the private set over time.
-- **If you label by hand,** write label guidelines and measure inter-annotator agreement, disagreement means the task is underspecified, not that a rater is wrong.
+- **If you label by hand,** write label guidelines and measure inter-annotator agreement, disagreement means the task is underspecified, not that a rater is wrong. And when you group failures into categories, do the first pass *by hand* before letting a model cluster them, or it will flatten your specific bugs into generic buckets.
 
 ### Guard against overfitting the benchmark (Goodhart's law)
 
@@ -122,6 +125,7 @@ The held-out split above stops the crude version (teaching to the test). The sub
 - **Watch for metric-reality divergence.** If the score climbs but spot checks, users, or a fresh eyeball pass don't agree, believe the reality, not the number.
 - **Cap how often you look** at a given set, and keep one qualitative pass that no optimization loop can game.
 - **Don't chase a single headline metric.** Optimizing one number is exactly what invites Goodhart, keep a small basket (quality, cost, a negative-space check) so gaming one shows up in another.
+- **Watch the other direction too: the system gaming the grader.** The overfitting above is *you* teaching to the test. A capable system can also learn to satisfy the checker without doing the task, hitting the keywords, passing the visible cases while failing hidden ones. Keep a holdout it never sees, and check the *trajectory*, not just the final answer: a right result reached by reading the answer key is a fail. An exploitable grader doesn't hand you a weaker result, it hands you no result.
 
 ---
 
@@ -158,7 +162,22 @@ A number without noise bounds isn't a result.
 
 ---
 
-## Part 7 — Trusting the number (validate the eval itself)
+## Part 7 — Adversarial and safety evals (does it hold up under attack?)
+
+Everything so far measures whether the system is *good*. This measures whether it stays *safe* when someone hostile is in the loop, a user, a web page it reads, a tool result, another agent. If your system has any authority at all, it can call tools, spend money, touch data, act as the user, this stops being optional.
+
+- **Write the threat model first.** Name what an attacker could reach (secrets, files, spend, the power to act as the user), where untrusted content crosses into that authority (retrieved docs, tool output, uploads), and what each tool can do at *worst*. An attack case with no named asset is a vibe, not a test.
+- **Keep a frozen corpus of attacks, one per class:** instructions smuggled inside retrieved content, payloads hidden in tool arguments, attempts to exfiltrate a secret, a push toward an unsafe tool call, a goal hijacked mid-task. Version it like any fixture, a published attack set the model trained on measures memory, not safety.
+- **Grade the boundary in code, not vibes.** Assert on what actually happened, no secret was read, nothing left the sandbox, no unauthorized call fired, not on how politely it refused. Refusal *style* is a separate, lesser layer.
+- **Plant canaries that must fail.** Include an attack that should succeed if containment is off. If it ever passes the gate, your instrument is broken, not your system safe.
+- **Report per attack class, never one "safety score."** A blended number hides exactly the class that broke.
+- **No audit trail, no claim.** If you can't see the tool log and the state diff, the result is "can't measure," never "probably safe."
+
+Borrow attack vocabularies from published work (AgentHarm, prompt-injection probe suites, the red-team evals of frontier models); build the assertions against *your own* assets and boundaries.
+
+---
+
+## Part 8 — Trusting the number (validate the eval itself)
 
 The eval can be wrong. Audit it before you audit the work.
 
@@ -168,7 +187,7 @@ The eval can be wrong. Audit it before you audit the work.
 
 ---
 
-## Part 8 — Reporting: honesty is the deliverable
+## Part 9 — Reporting: honesty is the deliverable
 
 Report in a fixed shape so a reader can audit it:
 
@@ -184,7 +203,7 @@ Report in a fixed shape so a reader can audit it:
 
 ---
 
-## Part 9 — The layer above the runners
+## Part 10 — The layer above the runners
 
 Everything so far is the decision layer: whether to measure, what to measure, where the bar goes, what the number entitles you to claim. Below it sits the execution layer, whatever actually runs your items. That might be the plugin eval runner in your coding agent, a config-driven runner like promptfoo, a pytest-style library like DeepEval, an observability platform like LangSmith, Langfuse, Braintrust, or Phoenix, or an agent harness like Inspect AI. Pick whichever fits the stack. The methodology does not care, and that is the point.
 
@@ -201,6 +220,7 @@ Two practical consequences:
 
 **Before:**
 - [ ] Goal in one plain sentence; levers / outcomes / controls named
+- [ ] Output is verifiable without redoing the work (else fix the product first)
 - [ ] Metric matched to the task; cost + latency tracked as outcomes
 - [ ] *Where* the measurement belongs and its *weight* decided
 - [ ] Deterministic vs non-deterministic chosen deliberately
@@ -216,6 +236,7 @@ Two practical consequences:
 - [ ] Fixture fingerprinted; only the change varies; cache trap avoided
 - [ ] Treatment arm liveness-checked
 - [ ] Judge calibrated against human labels (agreement above threshold)
+- [ ] If the system has authority: adversarial cases run, boundary asserted in code, results per attack class
 
 **After:**
 - [ ] Delta has a confidence interval; paired comparison used
