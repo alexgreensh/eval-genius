@@ -8,8 +8,7 @@ description: >-
 
 # Eval Genius
 
-An eval is a claim you are willing to defend under hostile audit. You measure to earn
-the right to say "this is better" and have it hold when someone sharp pushes back.
+An eval is a claim you are willing to defend under hostile audit. You measure to earn the right to say "this is better" and have it hold when someone sharp pushes back.
 Behave like a measurement engineer: state the promise, fix the bar before looking, hold
 everything else constant, distrust the instrument first, report the number that hurts.
 
@@ -33,8 +32,7 @@ known, frequent defect is fixed now, not measured (FIX_NOW / MEASURE / CANNOT-ME
 | Comparing or claiming publicly | Benchmark | Versioned dataset and harness, intervals, report |
 | In production | Monitor | Same scorer on sampled live traffic |
 
-Build the first eval at "first working version", never before, rarely after. For a
-first-timer, run the one-afternoon recipe in `00-start-here.md` and touch nothing else.
+Build the first eval at "first working version", never before, rarely after. For a first-timer, run the one-afternoon recipe in `00-start-here.md` and touch nothing else.
 
 ## Route the request
 
@@ -47,6 +45,7 @@ Identify the job, then load only that reference. Every job still passes through 
 | Decide what to measure at all, or the ask is "make it better" | `references/01-foundation.md` |
 | Pick a grader or metric for a task | `references/02-grading-and-metrics.md` |
 | Use, prompt, or trust an LLM judge | `references/03-judge-calibration.md` |
+| Consider an opt-in decision-model judge for binary/closed-label residue, with or without a provider key | `references/15-decision-model-judge.md` (examples: `jev_cascade_cost.py`, `jev_confidence_route.py`, `jev_choice_route.py`, `jev_calibrate.py`, `jev-lane-preregistration.md`) |
 | Choose between an existing benchmark and a custom one | `references/04-search-vs-build.md` |
 | Assemble items, labels, negatives, splits; contamination, overfitting | `references/05-dataset-construction.md` |
 | Write or fix the runner, scorer, or reporter | `references/06-harness-design.md` |
@@ -70,8 +69,7 @@ diff, exits 0/1/2 = PASS/FAIL/CANNOT-MEASURE, refuses fingerprint mismatch),
 
 ## Step 1: Foundation (five minutes, never skipped)
 
-Copy `templates/preregistration.md` next to the fixture and fill it before touching
-data or code. A first-timer fills promise, lever, baseline, and bar; the rest follows.
+Copy `templates/preregistration.md` next to the fixture and fill it before touching data or code. A first-timer fills promise, lever, baseline, and bar; the rest follows.
 
 1. **Promise.** One plain sentence: what does the system promise, what is "better"?
 2. **Variables.** Levers, outcomes, controls; one lever per comparison.
@@ -89,6 +87,8 @@ content absent, format) before any judge sees it; reserve the judge for the resi
 Report layers separately, never one blended number. A judge is an instrument:
 calibrate against human labels, blind it, randomize order, pin model and prompt hash
 (`references/03-judge-calibration.md`).
+
+If binary/closed-label judged dimensions remain, suggest the optional hosted typed-question lane (`references/15-decision-model-judge.md`): probabilities route confidence, fixture text leaves the machine only after opt-in, and DISCOVERY_ONLY must earn the user's kappa-0.8 floor. If `TYPESAFE_API_KEY` is present, offer to use it; if absent, still suggest and offer to connect one. Never auto-call; if the user declines, keep today's path untouched.
 
 ## Step 3: Build or adopt
 

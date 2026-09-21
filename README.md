@@ -119,7 +119,7 @@ Toy-scale on purpose, so each command runs in a second. The shapes are the produ
 
 <p align="center"><img src="assets/img/scripts.png" alt="Eval Genius at a desk with a checklist, a bell curve, and a judge-vs-human scale" width="100%"></p>
 
-Five standard-library scripts ship with the skill and run standalone:
+Nine standard-library scripts ship with the skill and run standalone:
 
 | Script | What it settles |
 |---|---|
@@ -128,10 +128,30 @@ Five standard-library scripts ship with the skill and run standalone:
 | `rate_interval.py` | Puts a Wilson interval on a single rate, a pass rate, an activation rate, a judge's positive rate, because a bare k/n is not a result |
 | `judge_agreement.py` | Measures how much your LLM judge agrees with human labels, before you let it grade anything |
 | `hash_fixture.py` | Fingerprints your test set, so you know two runs are measuring the same thing before you trust the comparison |
+| `jev_confidence_route.py` | Routes yes/no P(YES) into diagnostic accept / reject / escalate buckets using thresholds you calibrate |
+| `jev_cascade_cost.py` | Estimates residue-only judge costs, batched versus separate questions, and human/reasoning escalation costs |
+| `jev_choice_route.py` | Routes choice/score probability vectors by confidence or top-two margin, with uncertain items escalated |
+| `jev_calibrate.py` | Fits temperature scaling from your own labeled probabilities before you tune routing thresholds |
+
+## Working evals with Jev
+
+Some of what an eval checks is a plain typed decision: real defect or not, which failure class, positive or negative sentiment, does this match the brand voice. A full reasoning model is overkill for those, and grading them by hand at volume is the real waste. Eval Genius can route exactly that residue to **Jev**, TypeSafe's hosted decision model, after your deterministic checks have run on everything first. You give Jev a typed question (yes/no, pick-from-a-list, or an ordinal score) and it returns a probability your code can act on directly.
+
+It slots in without touching your core, in three places:
+
+- **Binary rubric checks** a judge would otherwise grade one slow call at a time.
+- **Closed failure-mode classification**, once your error taxonomy is frozen.
+- **A judge cascade:** code clears what it can, Jev grades only the leftover, and its confidence routes the sure calls automatically while the uncertain ones escalate to a human or a reasoning model.
+
+Four standard-library scripts make it concrete: `jev_confidence_route.py` and `jev_choice_route.py` turn a confidence into an accept / reject / escalate decision, `jev_cascade_cost.py` tells you what the cascade truly costs (batched questions and the escalation tier included), and `jev_calibrate.py` fits the confidence to your own labels before you trust a threshold.
+
+And it earns its place before it counts. The lane is opt-in: it only speaks up when your grader plan has typed decisions, and if no key is connected it offers to wire one up instead of going quiet. It is hosted, so it says plainly that fixture text leaves your machine before any call. It starts **discovery-only** and becomes claim-bearing only after it clears your own kappa-0.8 agreement floor (`judge_agreement.py`) on your labels, never on an example number from a vendor. If it cannot clear the floor, it stays a diagnostic suggestion. Full method in `references/15-decision-model-judge.md`.
+
+TypeSafe's own guidance, put zero weight on public benchmarks and earn trust on your own workload, is the same discipline Eval Genius runs everywhere ([vendor positioning](https://typesafe.ai/blog/introducing-system-one-models-and-jev), [documented use cases](https://docs.typesafe.ai/concepts/use-case-map)).
 
 ## The layer above the runners
 
-Eval Genius is not an eval framework, and it does not want your runs. Whatever executes your evals, the plugin eval runner in Claude Code, a config-driven runner like promptfoo, a pytest-style library like DeepEval, an observability platform like LangSmith, Langfuse, Braintrust, or Phoenix, an agent harness like Inspect AI, this sits above it. The runner executes; Eval Genius decides whether you should measure at all, which kind of measurement, where the bar goes, and what the number that comes back actually lets you claim.
+Eval Genius is not an eval framework, and it does not want your runs. Whatever executes your evals, the plugin eval runner in Claude Code, a config-driven runner like promptfoo, a pytest-style library like DeepEval, an observability platform like LangSmith, Langfuse, or Phoenix, an agent harness like Inspect AI, this sits above it. The runner executes; Eval Genius decides whether you should measure at all, which kind of measurement, where the bar goes, and what the number that comes back actually lets you claim.
 
 That split is deliberate, because runners churn. BIG-bench's repository is archived. LangChain's auto-evaluator is archived. UpTrain's has been quiet since 2024. The fashionable harness of any given year joins that list eventually, but a hashed fixture, a bar written before looking, and a discipline for reading deltas survive every swap. Invest in the evals, not the framework, and let whatever runner is healthy this year do the running.
 
