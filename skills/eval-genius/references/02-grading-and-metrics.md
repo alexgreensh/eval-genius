@@ -44,6 +44,8 @@ call. The judge never sees the items code already cleared, so cost scales with t
 rate, not the item count. It needs no special harness: the scorer routes, the judge grades
 the residue. This is how a harness-agnostic eval stays affordable on a large fixture.
 
+For an opt-in typed-question judge on binary/closed-label residue, see `15-decision-model-judge.md` for confidence thresholds, cascade cost, and the earn-it agreement floor.
+
 ## Partial credit vs binary verdicts
 
 A multi-part task can be partly right in a way a single pass/fail throws away: an agent

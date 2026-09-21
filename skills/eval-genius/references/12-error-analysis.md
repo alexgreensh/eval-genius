@@ -75,6 +75,8 @@ model saw no other failure" is not evidence none exists. Claims of the form
 "these classes cover the failures" or "class X is N% of failures" resolve to
 CANNOT-MEASURE until a human-open-coded seed exists.
 
+For opt-in typed-question classification after the human taxonomy is frozen, see `15-decision-model-judge.md` for confidence routing, cascade cost, and the earn-it agreement floor.
+
 ## Two things the loop gives you for free
 
 - **Writing the eval sharpens the definition.** You will discover that your intuition for

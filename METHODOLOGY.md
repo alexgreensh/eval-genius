@@ -69,6 +69,8 @@ Name which *kind* of eval you're building. This choice drives everything downstr
 
 A model judge is useful and biased. Treat it as an *instrument that needs calibration*, never an oracle.
 
+For binary or closed-label residue after code checks, the optional [decision-model lane](skills/eval-genius/references/15-decision-model-judge.md) starts discovery-only. Fit probabilities on your own labels before selecting thresholds, separately for each question type, then measure held-out agreement against the kappa-0.8 floor. Batch independent questions about the same item within the token budget, and include human/reasoning escalation in measured cost. Native confidence is a routing signal, not proof of calibration or safety.
+
 **The biases you inherit for free:**
 
 | Bias | What it does | Mitigation |
@@ -205,7 +207,7 @@ Report in a fixed shape so a reader can audit it:
 
 ## Part 10 — The layer above the runners
 
-Everything so far is the decision layer: whether to measure, what to measure, where the bar goes, what the number entitles you to claim. Below it sits the execution layer, whatever actually runs your items. That might be the plugin eval runner in your coding agent, a config-driven runner like promptfoo, a pytest-style library like DeepEval, an observability platform like LangSmith, Langfuse, Braintrust, or Phoenix, or an agent harness like Inspect AI. Pick whichever fits the stack. The methodology does not care, and that is the point.
+Everything so far is the decision layer: whether to measure, what to measure, where the bar goes, what the number entitles you to claim. Below it sits the execution layer, whatever actually runs your items. That might be the plugin eval runner in your coding agent, a config-driven runner like promptfoo, a pytest-style library like DeepEval, an observability platform like LangSmith, Langfuse, or Phoenix, or an agent harness like Inspect AI. Pick whichever fits the stack. The methodology does not care, and that is the point.
 
 **Invest in the evals, not the framework.** The durable artifacts are the fixture, the written bar, the labeled slices, the manifest. None of them belong to a runner, and runners churn: BIG-bench's repository is archived, LangChain's auto-evaluator is archived, UpTrain's has been quiet since 2024. What survives a harness swap is exactly what this document teaches: three-way outcomes, frozen and fingerprinted fixtures, intervals on every delta, a negative control in the gate. Adopt a runner for its plumbing; keep the parts that make the number defensible in your repo, in your format, portable.
 
