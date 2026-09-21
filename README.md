@@ -103,6 +103,22 @@ It walks the whole path, and meets you at any point on it, including the start:
 - **Writes it up honestly,** with caveats, tiers, and the comparison rule stated out loud.
 - **Refuses the shortcuts** that produce pretty lies: bars moved after the fact, blended scores, run-until-green, and judges nobody calibrated.
 
+## Working evals with Jev
+
+Some of what an eval checks is a plain typed decision: real defect or not, which failure class, positive or negative sentiment, does this match the brand voice. A full reasoning model is overkill for those, and grading them by hand at volume is the real waste. Eval Genius can route exactly that residue to **Jev**, TypeSafe's hosted decision model, after your deterministic checks have run on everything first. You give Jev a typed question (yes/no, pick-from-a-list, or an ordinal score) and it returns a probability your code can act on directly.
+
+It slots in without touching your core, in three places:
+
+- **Binary rubric checks** a judge would otherwise grade one slow call at a time.
+- **Closed failure-mode classification**, once your error taxonomy is frozen.
+- **A judge cascade:** code clears what it can, Jev grades only the leftover, and its confidence routes the sure calls automatically while the uncertain ones escalate to a human or a reasoning model.
+
+Four standard-library scripts make it concrete: `jev_confidence_route.py` and `jev_choice_route.py` turn a confidence into an accept / reject / escalate decision, `jev_cascade_cost.py` tells you what the cascade truly costs (batched questions and the escalation tier included), and `jev_calibrate.py` fits the confidence to your own labels before you trust a threshold.
+
+And it earns its place before it counts. The lane is opt-in: it only speaks up when your grader plan has typed decisions, and if no key is connected it offers to wire one up instead of going quiet. It is hosted, so it says plainly that fixture text leaves your machine before any call. It starts **discovery-only** and becomes claim-bearing only after it clears your own kappa-0.8 agreement floor (`judge_agreement.py`) on your labels, never on an example number from a vendor. If it cannot clear the floor, it stays a diagnostic suggestion. Full method in `references/15-decision-model-judge.md`.
+
+TypeSafe's own guidance, put zero weight on public benchmarks and earn trust on your own workload, is the same discipline Eval Genius runs everywhere ([vendor positioning](https://typesafe.ai/blog/introducing-system-one-models-and-jev), [documented use cases](https://docs.typesafe.ai/concepts/use-case-map)).
+
 ## See it work, start to finish
 
 Three worked examples live in `skills/eval-genius/references/walkthroughs/`, one for each thing you can point it at. Each is a full session from ask to verdict, and every number in them is real, produced by the shipped scripts on the shipped toy fixtures, reproducible in seconds with the commands printed in the file.
@@ -132,22 +148,6 @@ Nine standard-library scripts ship with the skill and run standalone:
 | `jev_cascade_cost.py` | Estimates residue-only judge costs, batched versus separate questions, and human/reasoning escalation costs |
 | `jev_choice_route.py` | Routes choice/score probability vectors by confidence or top-two margin, with uncertain items escalated |
 | `jev_calibrate.py` | Fits temperature scaling from your own labeled probabilities before you tune routing thresholds |
-
-## Working evals with Jev
-
-Some of what an eval checks is a plain typed decision: real defect or not, which failure class, positive or negative sentiment, does this match the brand voice. A full reasoning model is overkill for those, and grading them by hand at volume is the real waste. Eval Genius can route exactly that residue to **Jev**, TypeSafe's hosted decision model, after your deterministic checks have run on everything first. You give Jev a typed question (yes/no, pick-from-a-list, or an ordinal score) and it returns a probability your code can act on directly.
-
-It slots in without touching your core, in three places:
-
-- **Binary rubric checks** a judge would otherwise grade one slow call at a time.
-- **Closed failure-mode classification**, once your error taxonomy is frozen.
-- **A judge cascade:** code clears what it can, Jev grades only the leftover, and its confidence routes the sure calls automatically while the uncertain ones escalate to a human or a reasoning model.
-
-Four standard-library scripts make it concrete: `jev_confidence_route.py` and `jev_choice_route.py` turn a confidence into an accept / reject / escalate decision, `jev_cascade_cost.py` tells you what the cascade truly costs (batched questions and the escalation tier included), and `jev_calibrate.py` fits the confidence to your own labels before you trust a threshold.
-
-And it earns its place before it counts. The lane is opt-in: it only speaks up when your grader plan has typed decisions, and if no key is connected it offers to wire one up instead of going quiet. It is hosted, so it says plainly that fixture text leaves your machine before any call. It starts **discovery-only** and becomes claim-bearing only after it clears your own kappa-0.8 agreement floor (`judge_agreement.py`) on your labels, never on an example number from a vendor. If it cannot clear the floor, it stays a diagnostic suggestion. Full method in `references/15-decision-model-judge.md`.
-
-TypeSafe's own guidance, put zero weight on public benchmarks and earn trust on your own workload, is the same discipline Eval Genius runs everywhere ([vendor positioning](https://typesafe.ai/blog/introducing-system-one-models-and-jev), [documented use cases](https://docs.typesafe.ai/concepts/use-case-map)).
 
 ## The layer above the runners
 
